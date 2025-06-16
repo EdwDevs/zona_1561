@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Zona 1561 - Farmacias</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-pills"></i> Gestión Zona 1561</h1>
+                <p>Sistema de gestión de farmacias y droguerías</p>
+            </div>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <i class="fas fa-store"></i>
+                    <div>
+                        <span class="stat-number" id="totalFarmacias">0</span>
+                        <span class="stat-label">Farmacias</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Buscar por nombre, teléfono u observaciones...">
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="showModal()">
+                    <i class="fas fa-plus"></i> Agregar Farmacia
+                </button>
+                <button class="btn btn-success" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> Exportar Excel
+                </button>
+                <button class="btn btn-info" onclick="importData()">
+                    <i class="fas fa-upload"></i> Importar Datos
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-container">
+            <table id="farmaciasTable" class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th>Observaciones</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Los datos se cargarán aquí dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modal -->
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Agregar Farmacia</h2>
+                    <span class="close" onclick="closeModal()">&times;</span>
+                </div>
+                <form id="farmaciaForm">
+                    <div class="form-group">
+                        <label for="nombre">Nombre:</label>
+                        <input type="text" id="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono">Teléfono:</label>
+                        <input type="text" id="telefono" placeholder="Opcional">
+                    </div>
+                    <div class="form-group">
+                        <label for="observaciones">Observaciones:</label>
+                        <textarea id="observaciones" rows="4" placeholder="Información adicional..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2025 - Sistema de Gestión Zona 1561 | Desarrollado para optimizar tu gestión comercial 📊</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
