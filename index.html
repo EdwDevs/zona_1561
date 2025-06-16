@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión Zona 1561 - Farmacias</title>
+    <title>Gestión Zona 1561 - Sistema Corporativo</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Tu HTML de la aplicación aquí -->
     <div class="container">
         <!-- Header -->
         <header class="header">
             <div class="header-content">
                 <h1><i class="fas fa-pills"></i> Gestión Zona 1561</h1>
-                <p>Sistema de gestión de farmacias y droguerías</p>
+                <p>Sistema corporativo de gestión de farmacias</p>
             </div>
             <div class="header-stats">
                 <div class="stat-card">
@@ -39,14 +40,11 @@
                 <button class="btn btn-success" onclick="exportToExcel()">
                     <i class="fas fa-file-excel"></i> Exportar Excel
                 </button>
-                <button class="btn btn-info" onclick="importData()">
-                    <i class="fas fa-upload"></i> Importar Datos
-                </button>
             </div>
         </div>
 
-        <!-- Table Container -->
-        <div class="table-container">
+        <!-- Tabla Responsiva -->
+        <div class="table-wrapper">
             <table id="farmaciasTable" class="data-table">
                 <thead>
                     <tr>
@@ -57,7 +55,7 @@
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- Los datos se cargarán aquí dinámicamente -->
+                    <!-- Los datos se cargarán aquí -->
                 </tbody>
             </table>
         </div>
@@ -89,14 +87,49 @@
                 </form>
             </div>
         </div>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <p>&copy; 2025 - Sistema de Gestión Zona 1561 | Desarrollado para optimizar tu gestión comercial 📊</p>
-        </footer>
     </div>
 
+    <!-- =============================================== -->
+    <!-- 🔥 CONFIGURACIÓN FIREBASE - EXACTA DE TU CDN   -->
+    <!-- =============================================== -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAaVSb70OFIoX48T9GbLmTcdXOSvKv2pRk",
+            authDomain: "zona1561-4de30.firebaseapp.com",
+            projectId: "zona1561-4de30",
+            storageBucket: "zona1561-4de30.firebasestorage.app",
+            messagingSenderId: "451366030738",
+            appId: "1:451366030738:web:e638db51fbe24f6a48054b"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Hacer Firebase disponible globalmente
+        window.firebaseApp = app;
+        window.firebaseDB = db;
+        window.firebaseCollection = collection;
+        window.firebaseAddDoc = addDoc;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseUpdateDoc = updateDoc;
+        window.firebaseDeleteDoc = deleteDoc;
+        window.firebaseDoc = doc;
+        window.firebaseQuery = query;
+        window.firebaseOrderBy = orderBy;
+
+        console.log('🔥 Firebase inicializado correctamente');
+    </script>
+
+    <!-- Scripts externos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Tu script principal -->
     <script src="script.js"></script>
 </body>
 </html>
