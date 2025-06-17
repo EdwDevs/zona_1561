@@ -3,408 +3,829 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión Transferencias - DROSAN & UNIDROGAS</title>
+    <title>Transferencias Ejecutivas - DROSAN & UNIDROGAS | Zona 1561</title>
+    <meta name="description" content="Sistema ejecutivo de gestión de transferencias y pagos para DROSAN y UNIDROGAS">
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" as="style">
+    <link rel="preload" href="styles.css" as="style">
+    
+    <!-- Stylesheets -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e40af">
+    
+    <!-- SEO & Social -->
+    <meta property="og:title" content="Sistema Transferencias Ejecutivo">
+    <meta property="og:description" content="Gestión profesional de transferencias DROSAN & UNIDROGAS">
+    <meta property="og:type" content="website">
 </head>
 <body>
-    <div class="container">
-        <!-- Header Ejecutivo -->
-        <header class="header">
-            <div class="header-content">
-                <h1><i class="fas fa-exchange-alt"></i> Sistema de Transferencias</h1>
-                <p>Control de transferencias DROSAN & UNIDROGAS • Pagos DESCONGELX100, MULTIDOL X400/X800</p>
-            </div>
-            <div class="header-stats">
-                <div class="quick-stat">
-                    <span class="stat-number" id="totalTransferencias">0</span>
-                    <span class="stat-label">Transferencias</span>
+    <!-- 🎯 App Container -->
+    <div class="app-container">
+        <!-- 📱 Mobile Navigation Overlay -->
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+        
+        <!-- 🎯 Main Application -->
+        <main class="main-application">
+            <!-- 🏢 Executive Header -->
+            <header class="executive-header">
+                <div class="header-background">
+                    <div class="gradient-orb orb-1"></div>
+                    <div class="gradient-orb orb-2"></div>
+                    <div class="gradient-orb orb-3"></div>
                 </div>
-                <div class="quick-stat">
-                    <span class="stat-number" id="totalPagos">0</span>
-                    <span class="stat-label">Pagos</span>
-                </div>
-                <div class="quick-stat">
-                    <span class="stat-number" id="montoTotal">$0</span>
-                    <span class="stat-label">Total</span>
-                </div>
-            </div>
-        </header>
-
-        <!-- Estado Conexión Firebase -->
-        <div class="connection-status" id="connectionStatus">
-            <div class="status-card">
-                <i class="fas fa-spinner fa-spin" id="statusIcon"></i>
-                <h3 id="statusTitle">Conectando...</h3>
-                <p id="statusMessage">Inicializando sistema...</p>
-            </div>
-        </div>
-
-        <!-- Panel Principal -->
-        <div class="main-panel">
-            <div class="panel-tabs">
-                <button class="tab-btn active" onclick="showTab('transferencias')">
-                    <i class="fas fa-exchange-alt"></i> Transferencias
-                </button>
-                <button class="tab-btn" onclick="showTab('pagos')">
-                    <i class="fas fa-credit-card"></i> Pagos Productos
-                </button>
-                <button class="tab-btn" onclick="showTab('reportes')">
-                    <i class="fas fa-chart-bar"></i> Reportes
-                </button>
-            </div>
-
-            <!-- Tab: Transferencias -->
-            <div id="transferenciasTab" class="tab-content active">
-                <div class="section-header">
-                    <h2><i class="fas fa-plus-circle"></i> Registrar Transferencia</h2>
-                    <div class="action-buttons">
-                        <button onclick="exportTransferencias()" class="btn btn-success">
-                            <i class="fas fa-file-excel"></i> Exportar
-                        </button>
-                        <button onclick="loadData()" class="btn btn-info">
-                            <i class="fas fa-sync"></i> Actualizar
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Formulario Transferencias -->
-                <form id="transferenciaForm" class="form-card">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="distribuidora">
-                                <i class="fas fa-building"></i> Distribuidora *
-                            </label>
-                            <select id="distribuidora" required>
-                                <option value="">Seleccionar distribuidora</option>
-                                <option value="DROSAN">DROSAN</option>
-                                <option value="UNIDROGAS">UNIDROGAS</option>
-                            </select>
+                
+                <div class="header-content">
+                    <div class="header-main">
+                        <div class="company-brand">
+                            <div class="brand-icon">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <div class="brand-text">
+                                <h1>Sistema Transferencias</h1>
+                                <p class="brand-subtitle">DROSAN & UNIDROGAS • Control Ejecutivo</p>
+                            </div>
                         </div>
-
-                        <div class="form-group">
-                            <label for="clienteTransferencia">
-                                <i class="fas fa-store"></i> Cliente/Farmacia *
-                            </label>
-                            <input type="text" id="clienteTransferencia" required 
-                                   placeholder="Nombre del cliente o farmacia">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="productoTransferencia">
-                                <i class="fas fa-pills"></i> Producto
-                            </label>
-                            <input type="text" id="productoTransferencia" 
-                                   placeholder="Producto transferido">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="cantidadTransferencia">
-                                <i class="fas fa-sort-numeric-up"></i> Cantidad
-                            </label>
-                            <input type="number" id="cantidadTransferencia" min="1" 
-                                   placeholder="Cantidad de unidades">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="observacionesTransferencia">
-                                <i class="fas fa-comment"></i> Observaciones
-                            </label>
-                            <textarea id="observacionesTransferencia" rows="2" 
-                                      placeholder="Detalles adicionales de la transferencia"></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="fechaTransferencia">
-                                <i class="fas fa-calendar"></i> Fecha
-                            </label>
-                            <input type="date" id="fechaTransferencia" required>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Registrar Transferencia
-                        </button>
-                        <button type="button" onclick="clearTransferenciaForm()" class="btn btn-secondary">
-                            <i class="fas fa-eraser"></i> Limpiar
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Lista Transferencias -->
-                <div class="data-section">
-                    <h3><i class="fas fa-list"></i> Transferencias Registradas</h3>
-                    <div class="search-container">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchTransferencias" 
-                               placeholder="Buscar por cliente, producto o distribuidora...">
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Distribuidora</th>
-                                    <th>Cliente</th>
-                                    <th>Producto</th>
-                                    <th>Cantidad</th>
-                                    <th>Observaciones</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="transferenciasTableBody">
-                                <!-- Las transferencias se cargarán aquí -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div id="transferenciasEmpty" class="empty-state" style="display: none;">
-                        <i class="fas fa-exchange-alt"></i>
-                        <h3>No hay transferencias registradas</h3>
-                        <p>Comienza registrando la primera transferencia</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab: Pagos -->
-            <div id="pagosTab" class="tab-content">
-                <div class="section-header">
-                    <h2><i class="fas fa-plus-circle"></i> Registrar Pago de Productos</h2>
-                    <div class="action-buttons">
-                        <button onclick="exportPagos()" class="btn btn-success">
-                            <i class="fas fa-file-excel"></i> Exportar
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Formulario Pagos -->
-                <form id="pagoForm" class="form-card">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="clientePago">
-                                <i class="fas fa-store"></i> Cliente/Farmacia *
-                            </label>
-                            <input type="text" id="clientePago" required 
-                                   placeholder="Nombre del cliente que paga">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="productoPago">
-                                <i class="fas fa-pills"></i> Producto *
-                            </label>
-                            <select id="productoPago" required>
-                                <option value="">Seleccionar producto</option>
-                                <option value="DESCONGELX100">DESCONGELX100</option>
-                                <option value="MULTIDOL X400">MULTIDOL X400</option>
-                                <option value="MULTIDOL X800">MULTIDOL X800</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="cajasPagadas">
-                                <i class="fas fa-boxes"></i> Cajas Pagadas *
-                            </label>
-                            <input type="number" id="cajasPagadas" min="1" required 
-                                   placeholder="Número de cajas">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="valorUnitario">
-                                <i class="fas fa-dollar-sign"></i> Valor por Caja
-                            </label>
-                            <input type="number" id="valorUnitario" min="0" step="0.01" 
-                                   placeholder="Precio por caja">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="totalPago">
-                                <i class="fas fa-calculator"></i> Total Pago
-                            </label>
-                            <input type="text" id="totalPago" readonly 
-                                   placeholder="Se calculará automáticamente">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="fechaPago">
-                                <i class="fas fa-calendar"></i> Fecha Pago
-                            </label>
-                            <input type="date" id="fechaPago" required>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="observacionesPago">
-                                <i class="fas fa-comment"></i> Observaciones
-                            </label>
-                            <textarea id="observacionesPago" rows="2" 
-                                      placeholder="Detalles del pago, método, etc."></textarea>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Registrar Pago
-                        </button>
-                        <button type="button" onclick="clearPagoForm()" class="btn btn-secondary">
-                            <i class="fas fa-eraser"></i> Limpiar
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Lista Pagos -->
-                <div class="data-section">
-                    <h3><i class="fas fa-list"></i> Pagos Registrados</h3>
-                    <div class="search-container">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchPagos" 
-                               placeholder="Buscar por cliente, producto...">
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Cliente</th>
-                                    <th>Producto</th>
-                                    <th>Cajas</th>
-                                    <th>Valor Unitario</th>
-                                    <th>Total</th>
-                                    <th>Observaciones</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="pagosTableBody">
-                                <!-- Los pagos se cargarán aquí -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div id="pagosEmpty" class="empty-state" style="display: none;">
-                        <i class="fas fa-credit-card"></i>
-                        <h3>No hay pagos registrados</h3>
-                        <p>Comienza registrando el primer pago</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab: Reportes -->
-            <div id="reportesTab" class="tab-content">
-                <div class="section-header">
-                    <h2><i class="fas fa-chart-bar"></i> Reportes y Estadísticas</h2>
-                </div>
-
-                <!-- Resumen Ejecutivo -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-exchange-alt"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="reporteTotalTransferencias">0</h3>
-                            <p>Total Transferencias</p>
+                        
+                        <div class="header-actions">
+                            <button class="action-btn primary" onclick="showQuickAdd()">
+                                <i class="fas fa-plus"></i>
+                                <span>Agregar</span>
+                            </button>
+                            <button class="action-btn secondary" onclick="showNotifications()">
+                                <i class="fas fa-bell"></i>
+                                <span class="notification-badge">3</span>
+                            </button>
                         </div>
                     </div>
                     
-                    <div class="stat-card">
-                        <div class="stat-icon">
+                    <!-- 📊 Executive Dashboard Cards -->
+                    <div class="dashboard-cards">
+                        <div class="dashboard-card primary">
+                            <div class="card-icon">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-value" id="totalTransferencias">0</div>
+                                <div class="card-label">Transferencias</div>
+                                <div class="card-trend positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+12%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card success">
+                            <div class="card-icon">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-value" id="totalPagos">0</div>
+                                <div class="card-label">Pagos Registrados</div>
+                                <div class="card-trend positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+8%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card info">
+                            <div class="card-icon">
+                                <i class="fas fa-boxes"></i>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-value" id="totalCajas">0</div>
+                                <div class="card-label">Cajas Procesadas</div>
+                                <div class="card-trend neutral">
+                                    <i class="fas fa-minus"></i>
+                                    <span>0%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card warning">
+                            <div class="card-icon">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-value" id="montoTotal">$0</div>
+                                <div class="card-label">Monto Total</div>
+                                <div class="card-trend positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+15%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 🔗 Connection Status Indicator -->
+                <div class="connection-indicator" id="connectionIndicator">
+                    <div class="indicator-dot"></div>
+                    <span class="indicator-text">Conectando...</span>
+                </div>
+            </header>
+            
+            <!-- 🎛️ Executive Control Panel -->
+            <section class="control-panel">
+                <div class="panel-container">
+                    <!-- 🎯 Navigation Tabs -->
+                    <nav class="executive-nav">
+                        <div class="nav-tabs">
+                            <button class="nav-tab active" data-tab="transferencias">
+                                <div class="tab-icon">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </div>
+                                <div class="tab-content">
+                                    <span class="tab-title">Transferencias</span>
+                                    <span class="tab-subtitle">Gestión de envíos</span>
+                                </div>
+                            </button>
+                            
+                            <button class="nav-tab" data-tab="pagos">
+                                <div class="tab-icon">
+                                    <i class="fas fa-credit-card"></i>
+                                </div>
+                                <div class="tab-content">
+                                    <span class="tab-title">Pagos</span>
+                                    <span class="tab-subtitle">Control de productos</span>
+                                </div>
+                            </button>
+                            
+                            <button class="nav-tab" data-tab="analytics">
+                                <div class="tab-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="tab-content">
+                                    <span class="tab-title">Analytics</span>
+                                    <span class="tab-subtitle">Reportes ejecutivos</span>
+                                </div>
+                            </button>
+                        </div>
+                        
+                        <div class="nav-actions">
+                            <button class="nav-action-btn" onclick="exportData()" title="Exportar datos">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="nav-action-btn" onclick="refreshData()" title="Actualizar">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button class="nav-action-btn" onclick="toggleSettings()" title="Configuración">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                        </div>
+                    </nav>
+                    
+                    <!-- 📊 Tab Content Areas -->
+                    <div class="tab-content-container">
+                        <!-- Tab: Transferencias -->
+                        <div class="tab-panel active" id="transferenciasPanel">
+                            <div class="panel-header">
+                                <div class="header-info">
+                                    <h2>Gestión de Transferencias</h2>
+                                    <p>Control centralizado de transferencias DROSAN y UNIDROGAS</p>
+                                </div>
+                                <div class="header-controls">
+                                    <div class="search-control">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="searchTransferencias" placeholder="Buscar transferencias..." autocomplete="off">
+                                    </div>
+                                    <div class="filter-controls">
+                                        <select id="filterDistribuidora" class="filter-select">
+                                            <option value="">Todas las distribuidoras</option>
+                                            <option value="DROSAN">DROSAN</option>
+                                            <option value="UNIDROGAS">UNIDROGAS</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Formulario Transferencias -->
+                            <div class="form-section">
+                                <div class="section-title">
+                                    <h3>Registrar Nueva Transferencia</h3>
+                                    <div class="title-decoration"></div>
+                                </div>
+                                
+                                <form id="transferenciaForm" class="executive-form">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-building"></i>
+                                                Distribuidora
+                                                <span class="required">*</span>
+                                            </label>
+                                            <div class="select-wrapper">
+                                                <select id="distribuidora" required>
+                                                    <option value="">Seleccionar distribuidora</option>
+                                                    <option value="DROSAN">DROSAN</option>
+                                                    <option value="UNIDROGAS">UNIDROGAS</option>
+                                                </select>
+                                                <i class="fas fa-chevron-down"></i>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-store"></i>
+                                                Cliente/Farmacia
+                                                <span class="required">*</span>
+                                            </label>
+                                            <input type="text" id="clienteTransferencia" required 
+                                                   placeholder="Nombre del cliente o farmacia" autocomplete="off">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-pills"></i>
+                                                Producto
+                                            </label>
+                                            <input type="text" id="productoTransferencia" 
+                                                   placeholder="Producto transferido" autocomplete="off">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-sort-numeric-up"></i>
+                                                Cantidad
+                                            </label>
+                                            <div class="input-with-unit">
+                                                <input type="number" id="cantidadTransferencia" min="1" 
+                                                       placeholder="0">
+                                                <span class="input-unit">unidades</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-calendar"></i>
+                                                Fecha
+                                                <span class="required">*</span>
+                                            </label>
+                                            <input type="date" id="fechaTransferencia" required>
+                                        </div>
+                                        
+                                        <div class="form-group full-width">
+                                            <label class="form-label">
+                                                <i class="fas fa-comment-alt"></i>
+                                                Observaciones
+                                            </label>
+                                            <textarea id="observacionesTransferencia" rows="3" 
+                                                      placeholder="Detalles adicionales de la transferencia"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="button" class="btn secondary" onclick="clearTransferenciaForm()">
+                                            <i class="fas fa-eraser"></i>
+                                            Limpiar
+                                        </button>
+                                        <button type="submit" class="btn primary">
+                                            <i class="fas fa-save"></i>
+                                            Registrar Transferencia
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- Data Table Transferencias -->
+                            <div class="data-section">
+                                <div class="section-header">
+                                    <div class="section-info">
+                                        <h3>Transferencias Registradas</h3>
+                                        <span class="record-count" id="transferenciasCount">0 registros</span>
+                                    </div>
+                                    <div class="section-actions">
+                                        <button class="btn outline" onclick="exportTransferencias()">
+                                            <i class="fas fa-file-excel"></i>
+                                            Exportar
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-wrapper">
+                                    <div class="executive-table">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>
+                                                        <div class="th-content">
+                                                            <span>Fecha</span>
+                                                            <i class="fas fa-sort"></i>
+                                                        </div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content">
+                                                            <span>Distribuidora</span>
+                                                            <i class="fas fa-sort"></i>
+                                                        </div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content">
+                                                            <span>Cliente</span>
+                                                            <i class="fas fa-sort"></i>
+                                                        </div>
+                                                    </th>
+                                                    <th>Producto</th>
+                                                    <th>Cantidad</th>
+                                                    <th>Observaciones</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="transferenciasTableBody">
+                                                <!-- Data will be loaded here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div class="table-pagination" id="transferenciaPagination">
+                                        <div class="pagination-info">
+                                            Mostrando <span id="paginationInfo">0-0 de 0</span> registros
+                                        </div>
+                                        <div class="pagination-controls">
+                                            <button class="pagination-btn" id="prevBtn" disabled>
+                                                <i class="fas fa-chevron-left"></i>
+                                            </button>
+                                            <div class="pagination-pages" id="paginationPages">
+                                                <!-- Page numbers will be inserted here -->
+                                            </div>
+                                            <button class="pagination-btn" id="nextBtn" disabled>
+                                                <i class="fas fa-chevron-right"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="empty-state" id="transferenciasEmpty" style="display: none;">
+                                    <div class="empty-icon">
+                                        <i class="fas fa-exchange-alt"></i>
+                                    </div>
+                                    <h3>No hay transferencias registradas</h3>
+                                    <p>Comienza registrando tu primera transferencia para ver los datos aquí</p>
+                                    <button class="btn primary" onclick="focusFirstInput()">
+                                        <i class="fas fa-plus"></i>
+                                        Crear Primera Transferencia
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab: Pagos -->
+                        <div class="tab-panel" id="pagosPanel">
+                            <div class="panel-header">
+                                <div class="header-info">
+                                    <h2>Control de Pagos</h2>
+                                    <p>Gestión de pagos DESCONGELX100, MULTIDOL X400 y MULTIDOL X800</p>
+                                </div>
+                                <div class="header-controls">
+                                    <div class="search-control">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="searchPagos" placeholder="Buscar pagos..." autocomplete="off">
+                                    </div>
+                                    <div class="filter-controls">
+                                        <select id="filterProducto" class="filter-select">
+                                            <option value="">Todos los productos</option>
+                                            <option value="DESCONGELX100">DESCONGELX100</option>
+                                            <option value="MULTIDOL X400">MULTIDOL X400</option>
+                                            <option value="MULTIDOL X800">MULTIDOL X800</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Formulario Pagos -->
+                            <div class="form-section">
+                                <div class="section-title">
+                                    <h3>Registrar Nuevo Pago</h3>
+                                    <div class="title-decoration"></div>
+                                </div>
+                                
+                                <form id="pagoForm" class="executive-form">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-store"></i>
+                                                Cliente/Farmacia
+                                                <span class="required">*</span>
+                                            </label>
+                                            <input type="text" id="clientePago" required 
+                                                   placeholder="Nombre del cliente que paga" autocomplete="off">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-pills"></i>
+                                                Producto
+                                                <span class="required">*</span>
+                                            </label>
+                                            <div class="select-wrapper">
+                                                <select id="productoPago" required>
+                                                    <option value="">Seleccionar producto</option>
+                                                    <option value="DESCONGELX100">DESCONGELX100</option>
+                                                    <option value="MULTIDOL X400">MULTIDOL X400</option>
+                                                    <option value="MULTIDOL X800">MULTIDOL X800</option>
+                                                </select>
+                                                <i class="fas fa-chevron-down"></i>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-boxes"></i>
+                                                Cajas Pagadas
+                                                <span class="required">*</span>
+                                            </label>
+                                            <div class="input-with-unit">
+                                                <input type="number" id="cajasPagadas" min="1" required placeholder="0">
+                                                <span class="input-unit">cajas</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-dollar-sign"></i>
+                                                Valor por Caja
+                                            </label>
+                                            <div class="input-with-currency">
+                                                <span class="currency-symbol">$</span>
+                                                <input type="number" id="valorUnitario" min="0" step="0.01" placeholder="0.00">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-calculator"></i>
+                                                Total Calculado
+                                            </label>
+                                            <div class="calculated-field">
+                                                <input type="text" id="totalPago" readonly placeholder="Se calcula automáticamente">
+                                                <i class="fas fa-check-circle calculated-icon"></i>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-calendar"></i>
+                                                Fecha de Pago
+                                                <span class="required">*</span>
+                                            </label>
+                                            <input type="date" id="fechaPago" required>
+                                        </div>
+                                        
+                                        <div class="form-group full-width">
+                                            <label class="form-label">
+                                                <i class="fas fa-comment-alt"></i>
+                                                Observaciones
+                                            </label>
+                                            <textarea id="observacionesPago" rows="3" 
+                                                      placeholder="Detalles del pago, método de pago, etc."></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="button" class="btn secondary" onclick="clearPagoForm()">
+                                            <i class="fas fa-eraser"></i>
+                                            Limpiar
+                                        </button>
+                                        <button type="submit" class="btn primary">
+                                            <i class="fas fa-save"></i>
+                                            Registrar Pago
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- Data Table Pagos -->
+                            <div class="data-section">
+                                <div class="section-header">
+                                    <div class="section-info">
+                                        <h3>Pagos Registrados</h3>
+                                        <span class="record-count" id="pagosCount">0 registros</span>
+                                    </div>
+                                    <div class="section-actions">
+                                        <button class="btn outline" onclick="exportPagos()">
+                                            <i class="fas fa-file-excel"></i>
+                                            Exportar
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-wrapper">
+                                    <div class="executive-table">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>
+                                                        <div class="th-content">
+                                                            <span>Fecha</span>
+                                                            <i class="fas fa-sort"></i>
+                                                        </div>
+                                                    </th>
+                                                    <th>Cliente</th>
+                                                    <th>Producto</th>
+                                                    <th>Cajas</th>
+                                                    <th>Valor Unit.</th>
+                                                    <th>Total</th>
+                                                    <th>Observaciones</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="pagosTableBody">
+                                                <!-- Data will be loaded here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <div class="empty-state" id="pagosEmpty" style="display: none;">
+                                    <div class="empty-icon">
+                                        <i class="fas fa-credit-card"></i>
+                                    </div>
+                                    <h3>No hay pagos registrados</h3>
+                                    <p>Registra el primer pago de productos para comenzar el control</p>
+                                    <button class="btn primary" onclick="showTab('pagos')">
+                                        <i class="fas fa-plus"></i>
+                                        Registrar Primer Pago
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab: Analytics -->
+                        <div class="tab-panel" id="analyticsPanel">
+                            <div class="panel-header">
+                                <div class="header-info">
+                                    <h2>Analytics Ejecutivos</h2>
+                                    <p>Reportes y análisis detallado de transferencias y pagos</p>
+                                </div>
+                                <div class="header-controls">
+                                    <div class="date-range-picker">
+                                        <input type="date" id="dateFrom" class="date-input">
+                                        <span class="date-separator">hasta</span>
+                                        <input type="date" id="dateTo" class="date-input">
+                                        <button class="btn outline small" onclick="applyDateFilter()">
+                                            <i class="fas fa-filter"></i>
+                                            Aplicar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Executive Analytics Grid -->
+                            <div class="analytics-grid">
+                                <div class="analytics-card">
+                                    <div class="card-header">
+                                        <h3>Resumen Ejecutivo</h3>
+                                        <i class="fas fa-chart-pie"></i>
+                                    </div>
+                                    <div class="summary-stats">
+                                        <div class="summary-item">
+                                            <div class="summary-value" id="reporteTotalTransferencias">0</div>
+                                            <div class="summary-label">Total Transferencias</div>
+                                        </div>
+                                        <div class="summary-item">
+                                            <div class="summary-value" id="reporteTotalPagos">0</div>
+                                            <div class="summary-label">Total Pagos</div>
+                                        </div>
+                                        <div class="summary-item">
+                                            <div class="summary-value" id="reporteTotalCajas">0</div>
+                                            <div class="summary-label">Cajas Pagadas</div>
+                                        </div>
+                                        <div class="summary-item primary">
+                                            <div class="summary-value" id="reporteMontoTotal">$0</div>
+                                            <div class="summary-label">Monto Total</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="analytics-card">
+                                    <div class="card-header">
+                                        <h3>Por Distribuidora</h3>
+                                        <i class="fas fa-building"></i>
+                                    </div>
+                                    <div class="distributor-stats">
+                                        <div class="distributor-item">
+                                            <div class="distributor-info">
+                                                <div class="distributor-badge drosan">DROSAN</div>
+                                                <div class="distributor-metrics">
+                                                    <span>Transferencias: <strong id="drosanTransferencias">0</strong></span>
+                                                    <span>Productos: <strong id="drosanProductos">0</strong></span>
+                                                </div>
+                                            </div>
+                                            <div class="distributor-chart">
+                                                <div class="progress-circle" data-percentage="60">
+                                                    <span>60%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="distributor-item">
+                                            <div class="distributor-info">
+                                                <div class="distributor-badge unidrogas">UNIDROGAS</div>
+                                                <div class="distributor-metrics">
+                                                    <span>Transferencias: <strong id="unidrogasTransferencias">0</strong></span>
+                                                    <span>Productos: <strong id="unidrogasProductos">0</strong></span>
+                                                </div>
+                                            </div>
+                                            <div class="distributor-chart">
+                                                <div class="progress-circle" data-percentage="40">
+                                                    <span>40%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="analytics-card full-width">
+                                    <div class="card-header">
+                                        <h3>Análisis por Productos</h3>
+                                        <i class="fas fa-pills"></i>
+                                    </div>
+                                    <div class="products-analytics">
+                                        <div class="product-card">
+                                            <div class="product-header">
+                                                <div class="product-badge descongelx100">DESCONGELX100</div>
+                                                <div class="product-trend positive">
+                                                    <i class="fas fa-arrow-up"></i>
+                                                    <span>+15%</span>
+                                                </div>
+                                            </div>
+                                            <div class="product-metrics">
+                                                <div class="metric">
+                                                    <span class="metric-value" id="descongelCajas">0</span>
+                                                    <span class="metric-label">Cajas</span>
+                                                </div>
+                                                <div class="metric">
+                                                    <span class="metric-value" id="descongelTotal">$0</span>
+                                                    <span class="metric-label">Total</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="product-card">
+                                            <div class="product-header">
+                                                <div class="product-badge multidol400">MULTIDOL X400</div>
+                                                <div class="product-trend positive">
+                                                    <i class="fas fa-arrow-up"></i>
+                                                    <span>+8%</span>
+                                                </div>
+                                            </div>
+                                            <div class="product-metrics">
+                                                <div class="metric">
+                                                    <span class="metric-value" id="multidol400Cajas">0</span>
+                                                    <span class="metric-label">Cajas</span>
+                                                </div>
+                                                <div class="metric">
+                                                    <span class="metric-value" id="multidol400Total">$0</span>
+                                                    <span class="metric-label">Total</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="product-card">
+                                            <div class="product-header">
+                                                <div class="product-badge multidol800">MULTIDOL X800</div>
+                                                <div class="product-trend neutral">
+                                                    <i class="fas fa-minus"></i>
+                                                    <span>0%</span>
+                                                </div>
+                                            </div>
+                                            <div class="product-metrics">
+                                                <div class="metric">
+                                                    <span class="metric-value" id="multidol800Cajas">0</span>
+                                                    <span class="metric-label">Cajas</span>
+                                                </div>
+                                                <div class="metric">
+                                                    <span class="metric-value" id="multidol800Total">$0</span>
+                                                    <span class="metric-label">Total</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 📱 Executive Activity Log -->
+            <section class="activity-log">
+                <div class="log-header">
+                    <div class="log-title">
+                        <h3>Registro de Actividades</h3>
+                        <span class="live-indicator">
+                            <div class="live-dot"></div>
+                            En vivo
+                        </span>
+                    </div>
+                    <div class="log-actions">
+                        <button class="log-action-btn" onclick="clearLog()">
+                            <i class="fas fa-broom"></i>
+                            Limpiar
+                        </button>
+                        <button class="log-action-btn" onclick="exportLog()">
+                            <i class="fas fa-download"></i>
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="log-container" id="logContainer">
+                    <!-- Log entries will be inserted here -->
+                </div>
+            </section>
+        </main>
+        
+        <!-- 🎭 Executive Modals -->
+        <div class="modal-overlay" id="modalOverlay"></div>
+        
+        <!-- Quick Add Modal -->
+        <div class="executive-modal" id="quickAddModal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3>Agregar Rápido</h3>
+                    <button class="modal-close" onclick="closeQuickAdd()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-content">
+                    <div class="quick-add-options">
+                        <button class="quick-option" onclick="quickAddTransferencia()">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Nueva Transferencia</span>
+                        </button>
+                        <button class="quick-option" onclick="quickAddPago()">
                             <i class="fas fa-credit-card"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="reporteTotalPagos">0</h3>
-                            <p>Total Pagos</p>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-boxes"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="reporteTotalCajas">0</h3>
-                            <p>Cajas Pagadas</p>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-dollar-sign"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="reporteMontoTotal">$0</h3>
-                            <p>Monto Total</p>
-                        </div>
+                            <span>Nuevo Pago</span>
+                        </button>
                     </div>
                 </div>
-
-                <!-- Reportes por Distribuidora -->
-                <div class="report-section">
-                    <h3><i class="fas fa-building"></i> Por Distribuidora</h3>
-                    <div class="report-cards">
-                        <div class="report-card">
-                            <h4>DROSAN</h4>
-                            <div class="report-stats">
-                                <span>Transferencias: <strong id="drosanTransferencias">0</strong></span>
-                                <span>Productos: <strong id="drosanProductos">0</strong></span>
-                            </div>
-                        </div>
-                        <div class="report-card">
-                            <h4>UNIDROGAS</h4>
-                            <div class="report-stats">
-                                <span>Transferencias: <strong id="unidrogasTransferencias">0</strong></span>
-                                <span>Productos: <strong id="unidrogasProductos">0</strong></span>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+        </div>
+        
+        <!-- Notifications Modal -->
+        <div class="executive-modal" id="notificationsModal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3>Notificaciones</h3>
+                    <button class="modal-close" onclick="closeNotifications()">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-
-                <!-- Reportes por Productos -->
-                <div class="report-section">
-                    <h3><i class="fas fa-pills"></i> Por Productos</h3>
-                    <div class="report-cards">
-                        <div class="report-card">
-                            <h4>DESCONGELX100</h4>
-                            <div class="report-stats">
-                                <span>Cajas: <strong id="descongelCajas">0</strong></span>
-                                <span>Total: <strong id="descongelTotal">$0</strong></span>
+                <div class="modal-content">
+                    <div class="notifications-list">
+                        <div class="notification-item unread">
+                            <div class="notification-icon success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="notification-content">
+                                <h4>Transferencia completada</h4>
+                                <p>DROSAN - Farmacia San Rafael - 15 unidades</p>
+                                <span class="notification-time">Hace 5 minutos</span>
                             </div>
                         </div>
-                        <div class="report-card">
-                            <h4>MULTIDOL X400</h4>
-                            <div class="report-stats">
-                                <span>Cajas: <strong id="multidol400Cajas">0</strong></span>
-                                <span>Total: <strong id="multidol400Total">$0</strong></span>
+                        
+                        <div class="notification-item">
+                            <div class="notification-icon info">
+                                <i class="fas fa-info"></i>
+                            </div>
+                            <div class="notification-content">
+                                <h4>Pago registrado</h4>
+                                <p>MULTIDOL X400 - 3 cajas - $150.000</p>
+                                <span class="notification-time">Hace 15 minutos</span>
                             </div>
                         </div>
-                        <div class="report-card">
-                            <h4>MULTIDOL X800</h4>
-                            <div class="report-stats">
-                                <span>Cajas: <strong id="multidol800Cajas">0</strong></span>
-                                <span>Total: <strong id="multidol800Total">$0</strong></span>
+                        
+                        <div class="notification-item">
+                            <div class="notification-icon warning">
+                                <i class="fas fa-exclamation"></i>
+                            </div>
+                            <div class="notification-content">
+                                <h4>Sincronización pendiente</h4>
+                                <p>2 registros esperando sincronización</p>
+                                <span class="notification-time">Hace 30 minutos</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Activity Log -->
-        <div class="activity-section">
-            <h3><i class="fas fa-history"></i> Registro de Actividades</h3>
-            <div id="logContainer" class="log-container"></div>
-            <button onclick="clearLog()" class="btn btn-secondary">
-                <i class="fas fa-broom"></i> Limpiar
-            </button>
-        </div>
     </div>
-
-    <!-- Firebase Configuration - Tu configuración que YA FUNCIONA -->
+    
+    <!-- Firebase Configuration -->
     <script type="module">
         try {
-            console.log('🚀 Iniciando Firebase para Transferencias...');
+            console.log('🚀 Iniciando Firebase Executive System...');
             
             const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js");
-            const { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js");
+            const { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where, limit } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js");
 
-            // Tu configuración Firebase que YA FUNCIONA
             const firebaseConfig = {
                 apiKey: "AIzaSyAaVSb70OFIoX48T9GbLmTcdXOSvKv2pRk",
                 authDomain: "zona1561-4de30.firebaseapp.com",
@@ -417,7 +838,7 @@
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
 
-            // Hacer disponible globalmente
+            // Global Firebase API
             window.firebaseApp = app;
             window.firebaseDB = db;
             window.firebaseCollection = collection;
@@ -429,20 +850,24 @@
             window.firebaseQuery = query;
             window.firebaseOrderBy = orderBy;
             window.firebaseWhere = where;
+            window.firebaseLimit = limit;
 
             window.firebaseReady = true;
             window.dispatchEvent(new CustomEvent('firebaseReady'));
 
-            console.log('🔥 Firebase para Transferencias listo');
+            console.log('🔥 Firebase Executive System Ready');
 
         } catch (error) {
-            console.error('❌ Error Firebase:', error);
+            console.error('❌ Firebase Error:', error);
             window.firebaseError = error;
             window.dispatchEvent(new CustomEvent('firebaseError', { detail: error }));
         }
     </script>
 
+    <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Main Application Script -->
     <script src="script.js"></script>
 </body>
 </html>
