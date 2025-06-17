@@ -1,171 +1,921 @@
 /**
- * 🏢 SISTEMA ZONA 1561 - HÍBRIDO FIREBASE + LOCAL
- * Trabaja con datos existentes de Firebase + 183 registros locales
- * @version: 6.0.0 - HÍBRIDO
+ * 🏢 SISTEMA DE TRANSFERENCIAS - DROSAN & UNIDROGAS
+ * Control de transferencias y pagos de productos
+ * @version: 1.0.0
  */
 
-// 🎯 Configuración
-const CONFIG = {
-    COLLECTION_NAME: 'farmacias',
-    STORAGE_KEY: 'zona1561_hybrid',
-    AUTO_SAVE_INTERVAL: 30000
+// 🎯 Variables globales
+let firebaseReady = false;
+let transferencias = [];
+let pagos = [];
+let editingId = null;
+let editingType = null; // 'transferencia' o 'pago'
+
+const COLLECTIONS = {
+    TRANSFERENCIAS: 'transferencias_drosan_unidrogas',
+    PAGOS: 'pagos_productos'
 };
 
-// 💾 Clase principal híbrida
-class FarmaciaManager {
-    constructor() {
-        this.farmacias = [];
-        this.editingIndex = -1;
-        this.currentFilter = '';
-        this.useFirebase = false;
+// 🚀 Inicialización
+document.addEventListener('DOMContentLoaded', () => {
+    log('🚀 Iniciando Sistema de Transferencias...', 'info');
+    setupEventListeners();
+    initializeForms();
+    
+    // Escuchar Firebase
+    window.addEventListener('firebaseReady', handleFirebaseReady);
+    window.addEventListener('firebaseError', handleFirebaseError);
+    
+    updateConnectionStatus('connecting', 'Conectando...', 'Inicializando sistema...');
+    
+    setTimeout(checkConnectionTimeout, 10000);
+});
+
+// ✅ Firebase listo
+function handleFirebaseReady() {
+    firebaseReady = true;
+    log('✅ Firebase conectado - Sistema listo', 'success');
+    updateConnectionStatus('connected', '✅ Sistema Operativo', 'Conectado a zona1561-4de30');
+    
+    loadData();
+}
+
+// ❌ Error Firebase
+function handleFirebaseError(event) {
+    const error = event.detail;
+    log(`❌ Error Firebase: ${error.message}`, 'error');
+    updateConnectionStatus('error', '❌ Error Conexión', error.message);
+    loadLocalData();
+}
+
+// ⏰ Timeout conexión
+function checkConnectionTimeout() {
+    if (!firebaseReady) {
+        log('⏰ Timeout - Trabajando offline', 'warning');
+        updateConnectionStatus('error', '⏰ Modo Offline', 'Usando datos locales');
+        loadLocalData();
+    }
+}
+
+// 🎯 Configurar event listeners
+function setupEventListeners() {
+    // Formularios
+    document.getElementById('transferenciaForm').addEventListener('submit', handleTransferenciaSubmit);
+    document.getElementById('pagoForm').addEventListener('submit', handlePagoSubmit);
+    
+    // Búsquedas
+    document.getElementById('searchTransferencias').addEventListener('input', 
+        debounce(() => filterTransferencias(), 300));
+    document.getElementById('searchPagos').addEventListener('input', 
+        debounce(() => filterPagos(), 300));
+    
+    // Cálculo automático en pagos
+    document.getElementById('cajasPagadas').addEventListener('input', calcularTotalPago);
+    document.getElementById('valorUnitario').addEventListener('input', calcularTotalPago);
+}
+
+// 📅 Inicializar formularios
+function initializeForms() {
+    // Establecer fecha actual
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('fechaTransferencia').value = today;
+    document.getElementById('fechaPago').value = today;
+}
+
+// 💰 Calcular total de pago
+function calcularTotalPago() {
+    const cajas = parseFloat(document.getElementById('cajasPagadas').value) || 0;
+    const valor = parseFloat(document.getElementById('valorUnitario').value) || 0;
+    const total = cajas * valor;
+    
+    document.getElementById('totalPago').value = total > 0 ? 
+        `$${total.toLocaleString('es-CO', { minimumFractionDigits: 2 })}` : '';
+}
+
+// 📊 Cargar datos
+async function loadData() {
+    if (!firebaseReady) {
+        loadLocalData();
+        return;
+    }
+
+    try {
+        log('📊 Cargando datos desde Firebase...', 'info');
         
-        // 📊 Todos los 183 registros completos
-        this.localData = [
-            { nombre: "Doralba Gomez pedidos (supervida)", telefono: "3112629258", observaciones: "pedidos con la Sra Doralba en horas AM" },
-            { nombre: "Paola (galeno)", telefono: "3005503883", observaciones: "pedidos con Paola" },
-            { nombre: "Maria Castellanos(farmavida)", telefono: "3044919278", observaciones: "pide por drosan (tiene vencida estermax tab) Fabio" },
-            { nombre: "Antonio (nuevo sol)", telefono: "3178180817", observaciones: "pidio ayer descongelx100 (3 descongel mas 1 cj multi x400)" },
-            { nombre: "bibiana, esmeralda (M y D)", telefono: "3213712473", observaciones: "pide por drosan (deysi drosan)" },
-            { nombre: "Danilo(cler recreo)", telefono: "3157105112", observaciones: "pedidos Danilo" },
-            { nombre: "JORDAN (drog florida)", telefono: "", observaciones: "pedidos drosan wolfarma" },
-            { nombre: "martha(unica pcta)", telefono: "3114990014", observaciones: "pedidos drosan (yolanda) pendientes pagos descongel multidol 400" },
-            { nombre: "Nayara,Javier(mediexpress)", telefono: "3107622018", observaciones: "pedidos drosan(xxx)Nayara" },
-            { nombre: "marcela(superdrogas)", telefono: "3128945193", observaciones: "cra 15#3-124 cambiar direccion" },
-            { nombre: "yina(vital salud)", telefono: "3178418227", observaciones: "unidrogas" },
-            { nombre: "Margy(jerez)", telefono: "3187787283", observaciones: "drosan ( )Luz Mary Jerez - modificar dir cra 15#6-90" },
-            { nombre: "alix (san rafael)", telefono: "3174043516", observaciones: "pedidos con la Sra Alix" },
-            { nombre: "Lilia Corzo(lico)", telefono: "3158862134", observaciones: "Pedidos con la sra Lidia" },
-            { nombre: "Yadira(la 7ma Pcta)", telefono: "3232060182", observaciones: "drosan (yolanda) -- fluzetrin cbg + multi 400(sabado) 3132018154" },
-            { nombre: "Daniela, Eliecer(ecovida)", telefono: "3168052998", observaciones: "pedidos con Andrea(ecovida 2)" },
-            { nombre: "jessica(granados amiga)", telefono: "3176678147", observaciones: "pedidos jessica" },
-            { nombre: "Miguel(lorena)", telefono: "3004860613", observaciones: "pedidos (drosan) isabel pedido mañana 8 mayo descongel x100" },
-            { nombre: "Harvey (unifarma)", telefono: "3212506845", observaciones: "pedidos con el Sr Harvey(pedidos)" },
-            { nombre: "Fernando(la 16 san carlos),Laura", telefono: "3232968472", observaciones: "pedidos con el Sr Fernando" },
-            { nombre: "Tatiana(umefa)", telefono: "", observaciones: "se realiza pedido de dolfenax,multidol 400,clobezan" },
-            { nombre: "Jorge(granados centro)", telefono: "6979961", observaciones: "cll 11#23 pedidos con William o Esmeralda" },
-            { nombre: "Doris,Rosa(drg felix)", telefono: "3044505976", observaciones: "pendiente inventario porque esta recibiendo pedido. 3166256307- Doris" },
-            { nombre: "Luz mabe(campo hermoso)", telefono: "3186340114", observaciones: "pedidos con Rosa o Doris en la Felix (1 bifidolac +2 fluzetrin capsu)" },
-            { nombre: "Paola(nueva avenida)", telefono: "3003504784", observaciones: "pedidos con paola" },
-            { nombre: "Lidis(pharmalis)", telefono: "", observaciones: "pedidos Lidis. se hace trasnferencia de estermax crema y descongel x100" },
-            { nombre: "Fernando(el carmen)", telefono: "", observaciones: "Duopas 1, pedido de descongel x100 (mariela) (hollman-DROSAN)" },
-            { nombre: "mariana(farmaexpress)", telefono: "3204008446", observaciones: "necesita Multidol x800....jennifer pedidos whatsapp. PAGUE $5000 CJ DESCONGELX100" },
-            { nombre: "Adriana(farmagomez)-Samy", telefono: "", observaciones: "pedidos Dina Luz - Samy 2pm" },
-            { nombre: "Felsomina(Maria Reyna)", telefono: "3172795351", observaciones: "8-11:30 am pedidos" },
-            { nombre: "Nathaly(granados limoncito)", telefono: "", observaciones: "Gerson (pedidos en la del parque) horas AM" },
-            { nombre: "Gabriel(altamira)", telefono: "", observaciones: "pedidos con el Sr Gabriel" },
-            { nombre: "celestino(jael)", telefono: "3154058174", observaciones: "pedidos proxima visita" },
-            { nombre: "sila(cadfarma)", telefono: "3174308550", observaciones: "pedidos con la sra Marcela al numero registrado" },
-            { nombre: "Dora(jotaerre)", telefono: "3054693748", observaciones: "pedidos en Copidrogas y udrosan (COMPRAS SR JULIO)" },
-            { nombre: "martha(carios)", telefono: "3156670846", observaciones: "pedidos por copi. transferencia Estermax tabletas" },
-            { nombre: "william(drog s.c)", telefono: "3155333632", observaciones: "pedidos Sr William" },
-            { nombre: "rafael(zambrano plus)", telefono: "3146314022", observaciones: "realizara pedido el dia de feria" },
-            { nombre: "Gladys-Jorge(la colombia)", telefono: "3185858760", observaciones: "pedidos martes y jueves" },
-            { nombre: "fabio(deposito centro)", telefono: "3102330406", observaciones: "Enviar ofertas Al sr Carlos Portila" },
-            { nombre: "Jaime(pinzon)", telefono: "", observaciones: "transferencia trigentax 20 y 40(6-6) descongel x100(4) fluzetrin cbg(4)" },
-            { nombre: "Diego(pague menos sotomayor)", telefono: "", observaciones: "se realiza capacitacion se portafolio con el admin diego" },
-            { nombre: "Mauricio (drog esquina la 56)", telefono: "3124002613", observaciones: "cambiar direccion Cra 23#52-27" },
-            { nombre: "Jose luis(drg sotomayor)", telefono: "3168284101", observaciones: "enviar catalogo de precios" },
-            { nombre: "Laura(granados bucarica)", telefono: "3165893659", observaciones: "pedidos con Ingrid Caña en horas AM." },
-            { nombre: "madeleine(la y)", telefono: "3234272903", observaciones: "pedidos com ingrid caña de GRANADOS BUCARICA" },
-            { nombre: "Dayra(caracoli)", telefono: "3104807318", observaciones: "pedidos con eugenio horas AM" },
-            { nombre: "Luz Elena(taysof)", telefono: "3112305849", observaciones: "pedidos por Drosan, Unidrogas" },
-            { nombre: "Sebastian(skala)", telefono: "3188723369", observaciones: "hugo pedidos tipo (2pm)" },
-            { nombre: "briggith(la mejor lebrija)", telefono: "3162254245", observaciones: "Jonathan ramirez pedidos" },
-            { nombre: "cristina(rosanel)", telefono: "3162687959", observaciones: "pedidos con Edward en superDrogas lebrija" },
-            { nombre: "Edward(SuperDrogas Lebrija)", telefono: "3152517248", observaciones: "pedidos con Edward en superDrogas lebrija" },
-            { nombre: "Sandra(dromisalud)", telefono: "", observaciones: "pedidos con Edward en superDrogas lebrija" },
-            { nombre: "Martha(lebrifarma)", telefono: "3178304746", observaciones: "Drosan (cristian jair)" },
-            { nombre: "Edwin(intermundial)", telefono: "3222178472", observaciones: "Celia Marina pedidos con laa sra Celia al whatsapp 3185978884" },
-            { nombre: "Armando(drg la septima lebrija)", telefono: "", observaciones: "cambiar direccion cl 11#10-21 - descongelito(" },
-            { nombre: "Yury(botica express)", telefono: "", observaciones: "pedidos con Edward en superDrogas lebrija" },
-            { nombre: "Daniel(farma gomez matias)", telefono: "3184211242", observaciones: "Ahora se llama D-Max" },
-            { nombre: "Jorge Florez(jerez villabel)", telefono: "3155187213", observaciones: "Cambiar nombre y direccion (Granados Villabel - cra 12#5-12 Lc 2)3209403294" },
-            { nombre: "Orlamdo(lorce)", telefono: "3203334952", observaciones: "piden por carmencita" },
-            { nombre: "adela mantilla(carmencita)", telefono: "3043750163", observaciones: "pedidos Adela 11-11:30am (se realiza pago MULTIDOL X400-7 , DESCONGEL -1) AIRMAX 3 UNDS. 1 desconx100, descongelitox3-2, multidolx800-2, multidolx400-1, trigentax x20-3, neuropronx3-3)pdte DESCONX100,DESCONX3,NEUROPRON." },
-            { nombre: "jhon rojas(maximed)", telefono: "3156357993", observaciones: "jhon rojas drosan(hollman), unidrogas" },
-            { nombre: "Marcela(pharmaluc)", telefono: "3174032243", observaciones: "pedidos copi (pendiente descongel x100)" },
-            { nombre: "Nidia(globalfarma)", telefono: "3208104384", observaciones: "pedidos" },
-            { nombre: "Saulo(la cumbre)", telefono: "3203206687", observaciones: "pedidos (con el sr Saulo)" },
-            { nombre: "Andres(la virtud)", telefono: "3157221849", observaciones: "Alfonso Ortiz (realiza transferencias atendiendo por whastapp)" },
-            { nombre: "Edwin(Ecomed)", telefono: "3107869750", observaciones: "Sr Edwin pedidos 9-1pm" },
-            { nombre: "Camila(D Y J plus)", telefono: "3204618876", observaciones: "Pedidos con la sra Cecilia horas Pm" },
-            { nombre: "Hernando(comvida)", telefono: "3176528299", observaciones: "pedidos con el Sr Hernando (se pagan 6 cjs multidolx400), descongex100-1" },
-            { nombre: "Edgar(angela Mariana)", telefono: "", observaciones: "pedidos con el Sr Edgar en horas AM" },
-            { nombre: "Alex(alirio lopez 2)", telefono: "3026093915", observaciones: "pedidos con el Sr Alex" },
-            { nombre: "Marleni(paola)", telefono: "3184418807", observaciones: "pedidos con Marleni" },
-            { nombre: "Jenny(santa cruz plus)", telefono: "3105511558", observaciones: "Monica pedidos despues de 10 am" },
-            { nombre: "Harold(drg arenales)", telefono: "3124493663", observaciones: "pedidos con el Sr Harold" },
-            { nombre: "Robinson(Valery)", telefono: "3172362214", observaciones: "pedidos Drosan (Hollman)" },
-            { nombre: "Tiberio(sana sanar)", telefono: "3209855052", observaciones: "drosan (ricardo vadillo) se pagan multidol x800-4" },
-            { nombre: "Nelly(las villas)", telefono: "3202039638", observaciones: "Drosan(isabel) pago multidolx400-2" },
-            { nombre: "Laura(las villas de san juan)", telefono: "3144756906", observaciones: "drosan (fabio)" },
-            { nombre: "Wilson(cambulos)", telefono: "3160529491", observaciones: "drosan (Ricardo)" },
-            { nombre: "German, Cesar(unicentro)", telefono: "3208081288", observaciones: "Pedidos German, Cesar" },
-            { nombre: "Oscar(vital)", telefono: "3177779880", observaciones: "se realiza transferencia de 15 unidades airmax" },
-            { nombre: "angelica(super descuentos)", telefono: "3172278532", observaciones: "cambiar razon social (FARMA TE CUIDA)" },
-            { nombre: "Carlos(Drg Cler)", telefono: "3125668788", observaciones: "pedidos Sr Carlos" },
-            { nombre: "Esther(Famisalud)", telefono: "3142594702", observaciones: "pedidos Famisalud (pague 1 multidolx800, y un descongelx100)" },
-            { nombre: "Cecilia(famisalud oasis)", telefono: "3186160676", observaciones: "se facturan 106 unds Zakor y 4 unds Airmax" },
-            { nombre: "Julieth(farmavillas 3)", telefono: "", observaciones: "pedidos con el Sr Ariel en horas AM" },
-            { nombre: "Agustin(granados reposo)", telefono: "3016690442", observaciones: "pedidos con el Sr Agustin" },
-            { nombre: "Edith(la 58)", telefono: "3223216639", observaciones: "pedidos" },
-            { nombre: "Erasmo(nueva luz)", telefono: "3182927931", observaciones: "Wilmar pedidos en horas AM" },
-            { nombre: "juan carlos(granados San bernando)", telefono: "3115571002", observaciones: "pedidos con la Sra Alba" },
-            { nombre: "Nelson(pharma todo san alberto)", telefono: "3164389314", observaciones: "Drosan(jony ofertas 2 trigx20, descnx100 1 cja, 6 zakor, 2 descongelito)" },
-            { nombre: "Wilman(el veleño)san alberto", telefono: "3102194541", observaciones: "pedido por Copi" },
-            { nombre: "Albeiro(HL)san alberto", telefono: "3208638448", observaciones: "pedido por copi" },
-            { nombre: "Luis Carlos(servic-d)san martin", telefono: "3166207949", observaciones: "pagos cajas( 28 multix800, 5 multix400,2 desconx100)" },
-            { nombre: "David(drg castillo)san martin", telefono: "3213238940", observaciones: "se visita cliente y por el momento esta bien de inventarios" },
-            { nombre: "(la trinidad)san martin", telefono: "", observaciones: "no estan realizando transferencia. No se atienden transferencias por el momento." },
-            { nombre: "Octavio(farmasalud universal)san martin", telefono: "3152060974", observaciones: "pago cajas (32 multix800, 3 multix400, 5 desconx100)" },
-            { nombre: "Edward(mas x menos, Aguachica)", telefono: "3164129811", observaciones: "realizo pedido con Leidy" },
-            { nombre: "zuleima(valery sofia)pelaya", telefono: "3126501729", observaciones: "Darlys pedidos" },
-            { nombre: "Geiner(super drogas parra)pelaya", telefono: "3205438805", observaciones: "Jony parra pedidos" },
-            { nombre: "Marcela(JERCHRIAS)pelaya", telefono: "", observaciones: "Maria Victoria, y los pedidos por SuperDrogas Parra con El sr Jony" },
-            { nombre: "Diana(Farma Vida)Pelaya", telefono: "3108687307", observaciones: "Carol pedidos" },
-            { nombre: "Angelica(DROGUERIA JUSTY MORENO)pelaya", telefono: "3150276263", observaciones: "DROGUERIA JUSTY MORENO cambio direccion Cra8#6-60, pedidos Sra Justina" },
-            { nombre: "Rosalba(curita plus2) aguachica", telefono: "3175861298", observaciones: "Pedidos con la sra Rosalba" },
-            { nombre: "Jose Luis(bendita plus)gamarra", telefono: "3178573098", observaciones: "se pagan cajas y pedido por copi (4 multix800, 19 descon x100, 2 multix400)" },
-            { nombre: "Nohora(san jorge)aguachica", telefono: "3187161897", observaciones: "pedidos con nohora" },
-            { nombre: "samuel(curita plus)aguachica", telefono: "3147808780", observaciones: "pedidos con el Sr Manuel, Se pagan 3 multix800" },
-            { nombre: "Luis Perez(maxi drogas) aguachica", telefono: "3163156411", observaciones: "pedido pendiente por feria" },
-            { nombre: "Javier Ubaldia(medilat 2)", telefono: "", observaciones: "esta vendiendo la farmacia" },
-            { nombre: "Karen(aguachica)aguachica", telefono: "3013025195", observaciones: "pide solo por eticos" },
-            { nombre: "Dioselina, Daniela(salud y belleza)", telefono: "3108250462", observaciones: "Drosan(yony)6 unds zakor, 4 neuropronx3, 2 fluzetrin gotas," },
-            { nombre: "Cindy(pague menos) aguachica", telefono: "", observaciones: "se pagan (26 desconx100, 12 multix800)" },
-            { nombre: "Nelson(la nueva)ocaña", telefono: "3112195518", observaciones: "Drosan. Ya realizo pedido" },
-            { nombre: "Ricardo(megafarma ocaña)", telefono: "3152379160", observaciones: "Ricardo Gallargo dueño, no se encuentra en este momento PAGO 1 CAJA DESCONX100" },
-            { nombre: "Daneris(tarigua)ocaña", telefono: "3158229947", observaciones: "Drosan pedia" },
-            { nombre: "karen(drog 2020)ocaña", telefono: "3152312701", observaciones: "Adrian encargado pedidos para el pdv" },
-            { nombre: "Jesus(Clavijo)ocaña", telefono: "3176700417", observaciones: "pedidos con el Sr Jesus(multix400-1, multix800-1, tigenx20-6 x40-3, friotanxjbe-6,fluzetrinxCBG6,jbe 3,gotas3...3 infla x8mg....clobe loc 6 y 6 ungto.....2 fluturan.....dolfe...3.....lactu jbe 1 y cj 1......arimax....)" },
-            { nombre: "Javier( santa ana)ocaña", telefono: "3173798363", observaciones: "Unidrogas se realizan unicamente" },
-            { nombre: "Maryori(la 13 de ocaña)", telefono: "3187952096", observaciones: "Copidrogas....pago de 1 cj desconx100 y 1 cj multi x400" },
-            { nombre: "Karina(la doce de ocaña)", telefono: "3156205626", observaciones: "pedidos con la sra Karina" },
-            { nombre: "Ramon(Central de Ocaña)", telefono: "3154769519", observaciones: "pedidos (12 descongelito Drosan analudy)" },
-            { nombre: "Victor(farma paez) abrego", telefono: "3228562091", observaciones: "armando farmapaez PAGO 1 CJ DESCONX100" },
-            { nombre: "Karen(pharmakos) abrego", telefono: "3184827023", observaciones: "Claudia encargada de Chalver" },
-            { nombre: "(santa isabel)abrego", telefono: "", observaciones: "cambio dir CR.6 # 13 - 64 (B. CENTRO)" },
-            { nombre: "juan Jose(unidrogas) abrego", telefono: "3176799098", observaciones: "PAGO 8 CJS DESCONX100" },
-            { nombre: "Yesica(drg abrego)", telefono: "3165817327", observaciones: "martha encargada" },
-            { nombre: "Dinael(MAXIDROGAS ABREGO)", telefono: "3176682947", observaciones: "Presentacion de portafolio CLIENTE PARA INCLUIR PANEL 42179" },
-            { nombre: "Alfredo(la 10) ocaña", telefono: "3163407519", observaciones: "se realiza pedido para aplicar 10% DPE" },
-            { nombre: "Eduardo(drg pineda) ocaña", telefono: "3178137258", observaciones: "se realiza presentación de portafolio y queda pendiente el pedido" },
-            { nombre: "Yura(drogueria x2)ocaña", telefono: "", observaciones: "se realizo transfeerencia" },
-            { nombre: "Hector(drg ocaña)ocaña", telefono: "", observaciones: "pedidos con Nairon" },
-            { nombre: "Mauricio(drog san agustin)ocaña", telefono: "3166588287", observaciones: "No se visitaba y pide ofertas" },
-            { nombre: "Manuel(bettel)ocaña", telefono: "3015992969", observaciones: "realiza pedidos por transferencias" },
-            { nombre: "Laura(la equis)ocala", telefono: "3115440967", observaciones: "SE PAGAN (7..CJS DESCONX100....2..MULTIDOLX400....2..multidolx800)" },
-            { nombre: "Fabian(drogas salud)ocaña", telefono: "", observaciones: "Yudy clemencia encargada pedidos" },
-            { nombre: "Gerardo(avenida ocaña)", telefono: "3188846618", observaciones: "Wilder encargado" },
-            { nombre: "hermes(la lupita) santa clara", telefono: "3176878730", observaciones: "se realiza transfrencia de productos" },
-            { nombre: "alfredo(riaño) santa clara", telefono: "", observaciones: "drosan (ana ludi) 1 oferta multidolx400 2+1....1 ofert 3 trigx20 gts 12ML" },
-            { nombre: "Adrian(total confianza)santa coara", telefono: "3186053287", observaciones: "Ledy paredes encargada de pedidos y siempre atiende despues de las 3pm" },
-            { nombre: "jose luis(la X4)santa clara", telefono: "3162355562", observaciones: "fluz 1...1..1..trg x20 ....40...duoop 1...vagins crem 1...1 ovulo...inflacor 3+3 y 6+6.....bifidolac...lactulax" },
-            { nombre: "Maria (santa clara)", telefono: "3224676804", observaciones: "drosan (ludy) PENDIENTE PEDIDO LA PROXIMA SEMAMA MAYO 26 AL 30" },
-            { nombre: "Edier (la equis 5)ocaña", telefono: "", observaciones: "pedidos con Laura en la Equis principal PREGUNTAR RECAMBIO SIMPAUSE 2+1" },
-            { nombre: "Blanca (drg Leon)", telefono: "3102538626", observaciones: "pedidos por copi" },
-            { nombre: "Jonathan(farmatotal mas)", telefono: "3176496802", observaciones: "copi pedido realizado" },
-            { nombre: "jesus (manuel beltran)", telefono: "3188485204", observaciones: "drosan (ricardo)" },
-            { nombre: "Leonardo(mx alkosto)", telefono: "3182667182", observaciones: "drosan(fabio, richard)" },
-            { nombre: "(1a total)", telefono: "", observaciones: "la clienta realiza pedidos directamente" },
-            { nombre: "Esperanza( luz del porvenir)", telefono: "3134606389", observaciones
+        // Cargar transferencias
+        const transferenciasQuery = window.firebaseQuery(
+            window.firebaseCollection(window.firebaseDB, COLLECTIONS.TRANSFERENCIAS),
+            window.firebaseOrderBy('fecha', 'desc')
+        );
+        const transferenciasSnapshot = await window.firebaseGetDocs(transferenciasQuery);
+        
+        transferencias = [];
+        transferenciasSnapshot.forEach((doc) => {
+            transferencias.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Cargar pagos
+        const pagosQuery = window.firebaseQuery(
+            window.firebaseCollection(window.firebaseDB, COLLECTIONS.PAGOS),
+            window.firebaseOrderBy('fecha', 'desc')
+        );
+        const pagosSnapshot = await window.firebaseGetDocs(pagosQuery);
+        
+        pagos = [];
+        pagosSnapshot.forEach((doc) => {
+            pagos.push({ id: doc.id, ...doc.data() });
+        });
+        
+        log(`✅ Datos cargados: ${transferencias.length} transferencias, ${pagos.length} pagos`, 'success');
+        
+        renderData();
+        updateStats();
+        updateReports();
+        
+    } catch (error) {
+        log(`❌ Error cargando datos: ${error.message}`, 'error');
+        loadLocalData();
+    }
+}
+
+// 💾 Cargar datos locales
+function loadLocalData() {
+    try {
+        const localTransferencias = localStorage.getItem('transferencias_local');
+        const localPagos = localStorage.getItem('pagos_local');
+        
+        transferencias = localTransferencias ? JSON.parse(localTransferencias) : [];
+        pagos = localPagos ? JSON.parse(localPagos) : [];
+        
+        log(`📱 Datos locales: ${transferencias.length} transferencias, ${pagos.length} pagos`, 'info');
+        
+        renderData();
+        updateStats();
+        updateReports();
+        
+    } catch (error) {
+        log(`❌ Error cargando datos locales: ${error.message}`, 'error');
+        transferencias = [];
+        pagos = [];
+    }
+}
+
+// 💾 Guardar datos locales
+function saveLocalData() {
+    try {
+        localStorage.setItem('transferencias_local', JSON.stringify(transferencias));
+        localStorage.setItem('pagos_local', JSON.stringify(pagos));
+    } catch (error) {
+        log('❌ Error guardando datos locales', 'error');
+    }
+}
+
+// 📝 Manejar envío transferencia
+async function handleTransferenciaSubmit(e) {
+    e.preventDefault();
+    
+    const formData = {
+        distribuidora: document.getElementById('distribuidora').value,
+        cliente: document.getElementById('clienteTransferencia').value.trim(),
+        producto: document.getElementById('productoTransferencia').value.trim(),
+        cantidad: parseInt(document.getElementById('cantidadTransferencia').value) || 0,
+        observaciones: document.getElementById('observacionesTransferencia').value.trim(),
+        fecha: document.getElementById('fechaTransferencia').value,
+        fechaRegistro: new Date().toISOString()
+    };
+    
+    if (!formData.distribuidora || !formData.cliente || !formData.fecha) {
+        alert('Por favor completa los campos obligatorios');
+        return;
+    }
+    
+    try {
+        if (editingId && editingType === 'transferencia') {
+            await updateTransferencia(editingId, formData);
+        } else {
+            await addTransferencia(formData);
+        }
+        
+        clearTransferenciaForm();
+        
+    } catch (error) {
+        log(`❌ Error guardando transferencia: ${error.message}`, 'error');
+        alert(`Error: ${error.message}`);
+    }
+}
+
+// 📝 Manejar envío pago
+async function handlePagoSubmit(e) {
+    e.preventDefault();
+    
+    const cajas = parseInt(document.getElementById('cajasPagadas').value) || 0;
+    const valor = parseFloat(document.getElementById('valorUnitario').value) || 0;
+    
+    const formData = {
+        cliente: document.getElementById('clientePago').value.trim(),
+        producto: document.getElementById('productoPago').value,
+        cajasPagadas: cajas,
+        valorUnitario: valor,
+        totalPago: cajas * valor,
+        observaciones: document.getElementById('observacionesPago').value.trim(),
+        fecha: document.getElementById('fechaPago').value,
+        fechaRegistro: new Date().toISOString()
+    };
+    
+    if (!formData.cliente || !formData.producto || !formData.cajasPagadas || !formData.fecha) {
+        alert('Por favor completa los campos obligatorios');
+        return;
+    }
+    
+    try {
+        if (editingId && editingType === 'pago') {
+            await updatePago(editingId, formData);
+        } else {
+            await addPago(formData);
+        }
+        
+        clearPagoForm();
+        
+    } catch (error) {
+        log(`❌ Error guardando pago: ${error.message}`, 'error');
+        alert(`Error: ${error.message}`);
+    }
+}
+
+// ➕ Agregar transferencia
+async function addTransferencia(data) {
+    if (firebaseReady) {
+        try {
+            const collection = window.firebaseCollection(window.firebaseDB, COLLECTIONS.TRANSFERENCIAS);
+            const docRef = await window.firebaseAddDoc(collection, data);
+            data.id = docRef.id;
+            log(`✅ Transferencia guardada en Firebase`, 'success');
+        } catch (error) {
+            data.id = 'local_' + Date.now();
+            log(`📱 Transferencia guardada localmente: ${error.message}`, 'warning');
+        }
+    } else {
+        data.id = 'local_' + Date.now();
+        log(`📱 Transferencia guardada localmente`, 'warning');
+    }
+    
+    transferencias.unshift(data);
+    saveLocalData();
+    renderData();
+    updateStats();
+    updateReports();
+}
+
+// ➕ Agregar pago
+async function addPago(data) {
+    if (firebaseReady) {
+        try {
+            const collection = window.firebaseCollection(window.firebaseDB, COLLECTIONS.PAGOS);
+            const docRef = await window.firebaseAddDoc(collection, data);
+            data.id = docRef.id;
+            log(`✅ Pago guardado en Firebase`, 'success');
+        } catch (error) {
+            data.id = 'local_' + Date.now();
+            log(`📱 Pago guardado localmente: ${error.message}`, 'warning');
+        }
+    } else {
+        data.id = 'local_' + Date.now();
+        log(`📱 Pago guardado localmente`, 'warning');
+    }
+    
+    pagos.unshift(data);
+    saveLocalData();
+    renderData();
+    updateStats();
+    updateReports();
+}
+
+// ✏️ Actualizar transferencia
+async function updateTransferencia(id, data) {
+    const index = transferencias.findIndex(t => t.id === id);
+    if (index === -1) return;
+    
+    if (firebaseReady && !id.startsWith('local_')) {
+        try {
+            const docRef = window.firebaseDoc(window.firebaseDB, COLLECTIONS.TRANSFERENCIAS, id);
+            await window.firebaseUpdateDoc(docRef, data);
+            log(`✅ Transferencia actualizada en Firebase`, 'success');
+        } catch (error) {
+            log(`📱 Error Firebase, actualizando localmente: ${error.message}`, 'warning');
+        }
+    }
+    
+    transferencias[index] = { ...transferencias[index], ...data };
+    saveLocalData();
+    renderData();
+    updateStats();
+    updateReports();
+}
+
+// ✏️ Actualizar pago
+async function updatePago(id, data) {
+    const index = pagos.findIndex(p => p.id === id);
+    if (index === -1) return;
+    
+    if (firebaseReady && !id.startsWith('local_')) {
+        try {
+            const docRef = window.firebaseDoc(window.firebaseDB, COLLECTIONS.PAGOS, id);
+            await window.firebaseUpdateDoc(docRef, data);
+            log(`✅ Pago actualizado en Firebase`, 'success');
+        } catch (error) {
+            log(`📱 Error Firebase, actualizando localmente: ${error.message}`, 'warning');
+        }
+    }
+    
+    pagos[index] = { ...pagos[index], ...data };
+    saveLocalData();
+    renderData();
+    updateStats();
+    updateReports();
+}
+
+// 🗑️ Eliminar transferencia
+async function deleteTransferencia(id) {
+    const transferencia = transferencias.find(t => t.id === id);
+    if (!transferencia) return;
+    
+    if (!confirm(`¿Eliminar transferencia de ${transferencia.cliente}?\n\nEsta acción no se puede deshacer.`)) {
+        return;
+    }
+    
+    const index = transferencias.findIndex(t => t.id === id);
+    
+    if (firebaseReady && !id.startsWith('local_')) {
+        try {
+            const docRef = window.firebaseDoc(window.firebaseDB, COLLECTIONS.TRANSFERENCIAS, id);
+            await window.firebaseDeleteDoc(docRef);
+            log(`✅ Transferencia eliminada de Firebase`, 'success');
+        } catch (error) {
+            log(`📱 Error Firebase, eliminando localmente: ${error.message}`, 'warning');
+        }
+    }
+    
+    transferencias.splice(index, 1);
+    saveLocalData();
+    renderData();
+    updateStats();
+    updateReports();
+    
+    log(`🗑️ Transferencia eliminada`, 'info');
+}
+
+// 🗑️ Eliminar pago
+async function deletePago(id) {
+    const pago = pagos.find(p => p.id === id);
+    if (!pago) return;
+    
+    if (!confirm(`¿Eliminar pago de ${pago.cliente} - ${pago.producto}?\n\nEsta acción no se puede deshacer.`)) {
+        return;
+    }
+    
+    const index = pagos.findIndex(p => p.id === id);
+    
+    if (firebaseReady && !id.startsWith('local_')) {
+        try {
+            const docRef = window.firebaseDoc(window.firebaseDB, COLLECTIONS.PAGOS, id);
+            await window.firebaseDeleteDoc(docRef);
+            log(`✅ Pago eliminado de Firebase`, 'success');
+        } catch (error) {
+            log(`📱 Error Firebase, eliminando localmente: ${error.message}`, 'warning');
+        }
+    }
+    
+    pagos.splice(index, 1);
+    saveLocalData();
+    renderData();
+    updateStats();
+    updateReports();
+    
+    log(`🗑️ Pago eliminado`, 'info');
+}
+
+// 🎨 Renderizar datos
+function renderData() {
+    renderTransferencias();
+    renderPagos();
+}
+
+// 🎨 Renderizar transferencias
+function renderTransferencias(lista = transferencias) {
+    const tableBody = document.getElementById('transferenciasTableBody');
+    const emptyState = document.getElementById('transferenciasEmpty');
+    
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    if (lista.length === 0) {
+        document.querySelector('#transferenciasTab .table-container').style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+    
+    document.querySelector('#transferenciasTab .table-container').style.display = 'block';
+    emptyState.style.display = 'none';
+    
+    lista.forEach((transferencia) => {
+        const row = document.createElement('tr');
+        row.className = 'data-row';
+        
+        const fecha = new Date(transferencia.fecha).toLocaleDateString('es-CO');
+        
+        row.innerHTML = `
+            <td>${fecha}</td>
+            <td>
+                <span class="distribuidora-badge ${transferencia.distribuidora.toLowerCase()}">
+                    ${transferencia.distribuidora}
+                </span>
+            </td>
+            <td>${highlightSearch(transferencia.cliente, 'searchTransferencias')}</td>
+            <td>${highlightSearch(transferencia.producto || '-', 'searchTransferencias')}</td>
+            <td>${transferencia.cantidad || '-'}</td>
+            <td class="observaciones-cell">
+                ${highlightSearch(transferencia.observaciones || '-', 'searchTransferencias')}
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button onclick="editTransferencia('${transferencia.id}')" class="btn btn-edit" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deleteTransferencia('${transferencia.id}')" class="btn btn-delete" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+    
+    animateRows('#transferenciasTab .data-row');
+}
+
+// 🎨 Renderizar pagos
+function renderPagos(lista = pagos) {
+    const tableBody = document.getElementById('pagosTableBody');
+    const emptyState = document.getElementById('pagosEmpty');
+    
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    if (lista.length === 0) {
+        document.querySelector('#pagosTab .table-container').style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+    
+    document.querySelector('#pagosTab .table-container').style.display = 'block';
+    emptyState.style.display = 'none';
+    
+    lista.forEach((pago) => {
+        const row = document.createElement('tr');
+        row.className = 'data-row';
+        
+        const fecha = new Date(pago.fecha).toLocaleDateString('es-CO');
+        const valorUnitario = pago.valorUnitario ? 
+            `$${pago.valorUnitario.toLocaleString('es-CO')}` : '-';
+        const total = pago.totalPago ? 
+            `$${pago.totalPago.toLocaleString('es-CO')}` : '-';
+        
+        row.innerHTML = `
+            <td>${fecha}</td>
+            <td>${highlightSearch(pago.cliente, 'searchPagos')}</td>
+            <td>
+                <span class="producto-badge ${pago.producto.toLowerCase().replace(/\s+/g, '-')}">
+                    ${pago.producto}
+                </span>
+            </td>
+            <td><strong>${pago.cajasPagadas}</strong></td>
+            <td>${valorUnitario}</td>
+            <td><strong>${total}</strong></td>
+            <td class="observaciones-cell">
+                ${highlightSearch(pago.observaciones || '-', 'searchPagos')}
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button onclick="editPago('${pago.id}')" class="btn btn-edit" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deletePago('${pago.id}')" class="btn btn-delete" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+    
+    animateRows('#pagosTab .data-row');
+}
+
+// 🔍 Filtrar transferencias
+function filterTransferencias() {
+    const searchTerm = document.getElementById('searchTransferencias').value.toLowerCase().trim();
+    
+    if (!searchTerm) {
+        renderTransferencias();
+        return;
+    }
+    
+    const filtered = transferencias.filter(t => 
+        t.cliente.toLowerCase().includes(searchTerm) ||
+        t.distribuidora.toLowerCase().includes(searchTerm) ||
+        (t.producto && t.producto.toLowerCase().includes(searchTerm)) ||
+        (t.observaciones && t.observaciones.toLowerCase().includes(searchTerm))
+    );
+    
+    renderTransferencias(filtered);
+    log(`🔍 Transferencias filtradas: ${filtered.length}/${transferencias.length}`, 'info');
+}
+
+// 🔍 Filtrar pagos
+function filterPagos() {
+    const searchTerm = document.getElementById('searchPagos').value.toLowerCase().trim();
+    
+    if (!searchTerm) {
+        renderPagos();
+        return;
+    }
+    
+    const filtered = pagos.filter(p => 
+        p.cliente.toLowerCase().includes(searchTerm) ||
+        p.producto.toLowerCase().includes(searchTerm) ||
+        (p.observaciones && p.observaciones.toLowerCase().includes(searchTerm))
+    );
+    
+    renderPagos(filtered);
+    log(`🔍 Pagos filtrados: ${filtered.length}/${pagos.length}`, 'info');
+}
+
+// 🔍 Resaltar búsqueda
+function highlightSearch(text, inputId) {
+    const searchTerm = document.getElementById(inputId).value.trim();
+    if (!searchTerm || !text) return text || '';
+    
+    const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+}
+
+// 🛡️ Escapar regex
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ✏️ Editar transferencia
+function editTransferencia(id) {
+    const transferencia = transferencias.find(t => t.id === id);
+    if (!transferencia) return;
+    
+    document.getElementById('distribuidora').value = transferencia.distribuidora;
+    document.getElementById('clienteTransferencia').value = transferencia.cliente;
+    document.getElementById('productoTransferencia').value = transferencia.producto || '';
+    document.getElementById('cantidadTransferencia').value = transferencia.cantidad || '';
+    document.getElementById('observacionesTransferencia').value = transferencia.observaciones || '';
+    document.getElementById('fechaTransferencia').value = transferencia.fecha;
+    
+    editingId = id;
+    editingType = 'transferencia';
+    
+    // Cambiar a tab de transferencias y scroll
+    showTab('transferencias');
+    document.getElementById('transferenciaForm').scrollIntoView({ behavior: 'smooth' });
+    
+    log(`✏️ Editando transferencia: ${transferencia.cliente}`, 'info');
+}
+
+// ✏️ Editar pago
+function editPago(id) {
+    const pago = pagos.find(p => p.id === id);
+    if (!pago) return;
+    
+    document.getElementById('clientePago').value = pago.cliente;
+    document.getElementById('productoPago').value = pago.producto;
+    document.getElementById('cajasPagadas').value = pago.cajasPagadas;
+    document.getElementById('valorUnitario').value = pago.valorUnitario || '';
+    document.getElementById('observacionesPago').value = pago.observaciones || '';
+    document.getElementById('fechaPago').value = pago.fecha;
+    
+    calcularTotalPago();
+    
+    editingId = id;
+    editingType = 'pago';
+    
+    // Cambiar a tab de pagos y scroll
+    showTab('pagos');
+    document.getElementById('pagoForm').scrollIntoView({ behavior: 'smooth' });
+    
+    log(`✏️ Editando pago: ${pago.cliente} - ${pago.producto}`, 'info');
+}
+
+// 🧹 Limpiar formulario transferencia
+function clearTransferenciaForm() {
+    document.getElementById('transferenciaForm').reset();
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('fechaTransferencia').value = today;
+    editingId = null;
+    editingType = null;
+}
+
+// 🧹 Limpiar formulario pago
+function clearPagoForm() {
+    document.getElementById('pagoForm').reset();
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('fechaPago').value = today;
+    editingId = null;
+    editingType = null;
+}
+
+// 📊 Actualizar estadísticas
+function updateStats() {
+    const totalTransferenciasEl = document.getElementById('totalTransferencias');
+    const totalPagosEl = document.getElementById('totalPagos');
+    const montoTotalEl = document.getElementById('montoTotal');
+    
+    if (totalTransferenciasEl) totalTransferenciasEl.textContent = transferencias.length;
+    if (totalPagosEl) totalPagosEl.textContent = pagos.length;
+    
+    const montoTotal = pagos.reduce((sum, pago) => sum + (pago.totalPago || 0), 0);
+    if (montoTotalEl) {
+        montoTotalEl.textContent = `$${montoTotal.toLocaleString('es-CO')}`;
+    }
+}
+
+// 📊 Actualizar reportes
+function updateReports() {
+    // Estadísticas generales
+    document.getElementById('reporteTotalTransferencias').textContent = transferencias.length;
+    document.getElementById('reporteTotalPagos').textContent = pagos.length;
+    
+    const totalCajas = pagos.reduce((sum, pago) => sum + (pago.cajasPagadas || 0), 0);
+    document.getElementById('reporteTotalCajas').textContent = totalCajas;
+    
+    const montoTotal = pagos.reduce((sum, pago) => sum + (pago.totalPago || 0), 0);
+    document.getElementById('reporteMontoTotal').textContent = `$${montoTotal.toLocaleString('es-CO')}`;
+    
+    // Por distribuidora
+    const drosanTransferencias = transferencias.filter(t => t.distribuidora === 'DROSAN').length;
+    const unidrogasTransferencias = transferencias.filter(t => t.distribuidora === 'UNIDROGAS').length;
+    
+    document.getElementById('drosanTransferencias').textContent = drosanTransferencias;
+    document.getElementById('unidrogasTransferencias').textContent = unidrogasTransferencias;
+    
+    // Contar productos únicos por distribuidora
+    const drosanProductos = new Set(
+        transferencias.filter(t => t.distribuidora === 'DROSAN' && t.producto)
+                     .map(t => t.producto)
+    ).size;
+    const unidrogasProductos = new Set(
+        transferencias.filter(t => t.distribuidora === 'UNIDROGAS' && t.producto)
+                     .map(t => t.producto)
+    ).size;
+    
+    document.getElementById('drosanProductos').textContent = drosanProductos;
+    document.getElementById('unidrogasProductos').textContent = unidrogasProductos;
+    
+    // Por productos
+    const descongelPagos = pagos.filter(p => p.producto === 'DESCONGELX100');
+    const multidol400Pagos = pagos.filter(p => p.producto === 'MULTIDOL X400');
+    const multidol800Pagos = pagos.filter(p => p.producto === 'MULTIDOL X800');
+    
+    const descongelCajas = descongelPagos.reduce((sum, p) => sum + p.cajasPagadas, 0);
+    const multidol400Cajas = multidol400Pagos.reduce((sum, p) => sum + p.cajasPagadas, 0);
+    const multidol800Cajas = multidol800Pagos.reduce((sum, p) => sum + p.cajasPagadas, 0);
+    
+    const descongelTotal = descongelPagos.reduce((sum, p) => sum + (p.totalPago || 0), 0);
+    const multidol400Total = multidol400Pagos.reduce((sum, p) => sum + (p.totalPago || 0), 0);
+    const multidol800Total = multidol800Pagos.reduce((sum, p) => sum + (p.totalPago || 0), 0);
+    
+    document.getElementById('descongelCajas').textContent = descongelCajas;
+    document.getElementById('multidol400Cajas').textContent = multidol400Cajas;
+    document.getElementById('multidol800Cajas').textContent = multidol800Cajas;
+    
+    document.getElementById('descongelTotal').textContent = `$${descongelTotal.toLocaleString('es-CO')}`;
+    document.getElementById('multidol400Total').textContent = `$${multidol400Total.toLocaleString('es-CO')}`;
+    document.getElementById('multidol800Total').textContent = `$${multidol800Total.toLocaleString('es-CO')}`;
+}
+
+// 🎯 Gestión de tabs
+function showTab(tabName) {
+    // Ocultar todos los tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Quitar clase active de todos los botones
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Mostrar tab seleccionado
+    const targetTab = document.getElementById(tabName + 'Tab');
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
+    
+    // Activar botón correspondiente
+    const targetBtn = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+    if (targetBtn) {
+        targetBtn.classList.add('active');
+    }
+    
+    // Actualizar reportes si se selecciona esa tab
+    if (tabName === 'reportes') {
+        updateReports();
+    }
+}
+
+// 📤 Exportar transferencias
+function exportTransferencias() {
+    try {
+        const dataToExport = transferencias.map((t, index) => ({
+            'N°': index + 1,
+            'FECHA': new Date(t.fecha).toLocaleDateString('es-CO'),
+            'DISTRIBUIDORA': t.distribuidora,
+            'CLIENTE': t.cliente,
+            'PRODUCTO': t.producto || '',
+            'CANTIDAD': t.cantidad || '',
+            'OBSERVACIONES': t.observaciones || '',
+            'FECHA_REGISTRO': new Date(t.fechaRegistro).toLocaleString('es-CO')
+        }));
+        
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Transferencias');
+        
+        const fecha = new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(workbook, `Transferencias_${fecha}.xlsx`);
+        
+        log(`📊 Excel transferencias exportado: ${transferencias.length} registros`, 'success');
+        
+    } catch (error) {
+        log(`❌ Error exportando transferencias: ${error.message}`, 'error');
+        alert('Error al exportar transferencias');
+    }
+}
+
+// 📤 Exportar pagos
+function exportPagos() {
+    try {
+        const dataToExport = pagos.map((p, index) => ({
+            'N°': index + 1,
+            'FECHA': new Date(p.fecha).toLocaleDateString('es-CO'),
+            'CLIENTE': p.cliente,
+            'PRODUCTO': p.producto,
+            'CAJAS_PAGADAS': p.cajasPagadas,
+            'VALOR_UNITARIO': p.valorUnitario || 0,
+            'TOTAL_PAGO': p.totalPago || 0,
+            'OBSERVACIONES': p.observaciones || '',
+            'FECHA_REGISTRO': new Date(p.fechaRegistro).toLocaleString('es-CO')
+        }));
+        
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Pagos_Productos');
+        
+        const fecha = new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(workbook, `Pagos_Productos_${fecha}.xlsx`);
+        
+        log(`📊 Excel pagos exportado: ${pagos.length} registros`, 'success');
+        
+    } catch (error) {
+        log(`❌ Error exportando pagos: ${error.message}`, 'error');
+        alert('Error al exportar pagos');
+    }
+}
+
+// ✨ Animación de filas
+function animateRows(selector) {
+    const rows = document.querySelectorAll(selector);
+    rows.forEach((row, index) => {
+        row.style.opacity = '0';
+        row.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            row.style.transition = 'all 0.3s ease';
+            row.style.opacity = '1';
+            row.style.transform = 'translateY(0)';
+        }, index * 50);
+    });
+}
+
+// 📊 Actualizar estado de conexión
+function updateConnectionStatus(status, title, message) {
+    const statusCard = document.querySelector('.status-card');
+    const statusIcon = document.getElementById('statusIcon');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusMessage = document.getElementById('statusMessage');
+    
+    if (!statusCard) return;
+    
+    statusCard.className = 'status-card';
+    
+    switch (status) {
+        case 'connecting':
+            statusIcon.className = 'fas fa-spinner fa-spin';
+            break;
+        case 'connected':
+            statusCard.classList.add('connected');
+            statusIcon.className = 'fas fa-check-circle success';
+            break;
+        case 'error':
+            statusCard.classList.add('error');
+            statusIcon.className = 'fas fa-exclamation-triangle error';
+            break;
+    }
+    
+    statusTitle.textContent = title;
+    statusMessage.textContent = message;
+}
+
+// 📝 Sistema de logging
+function log(message, type = 'info') {
+    const logContainer = document.getElementById('logContainer');
+    if (!logContainer) return;
+    
+    const timestamp = new Date().toLocaleTimeString('es-CO');
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry ${type}`;
+    
+    const icons = {
+        'info': 'ℹ️',
+        'success': '✅',
+        'warning': '⚠️',
+        'error': '❌'
+    };
+    
+    logEntry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${icons[type]} ${message}`;
+    
+    logContainer.appendChild(logEntry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+    
+    console.log(`[Transferencias] ${message}`);
+}
+
+// 🧹 Limpiar log
+function clearLog() {
+    const logContainer = document.getElementById('logContainer');
+    if (logContainer) {
+        logContainer.innerHTML = '';
+        log('🧹 Registro limpiado', 'info');
+    }
+}
+
+// ⏱️ Debounce utility
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// 🎯 Funciones globales
+window.showTab = showTab;
+window.editTransferencia = editTransferencia;
+window.editPago = editPago;
+window.deleteTransferencia = deleteTransferencia;
+window.deletePago = deletePago;
+window.clearTransferenciaForm = clearTransferenciaForm;
+window.clearPagoForm = clearPagoForm;
+window.loadData = loadData;
+window.exportTransferencias = exportTransferencias;
+window.exportPagos = exportPagos;
+window.clearLog = clearLog;
+
+// 🔧 Debug utilities
+window.transferenciasDebug = {
+    status: () => ({
+        firebaseReady,
+        transferencias: transferencias.length,
+        pagos: pagos.length,
+        editingId,
+        editingType
+    }),
+    getData: () => ({ transferencias, pagos }),
+    clearAll: () => {
+        if (confirm('¿Eliminar TODOS los datos? Esta acción no se puede deshacer.')) {
+            transferencias = [];
+            pagos = [];
+            localStorage.removeItem('transferencias_local');
+            localStorage.removeItem('pagos_local');
+            renderData();
+            updateStats();
+            updateReports();
+            log('🧹 Todos los datos eliminados', 'warning');
+        }
+    }
+};
+
+log('📱 Sistema de Transferencias cargado correctamente', 'success');
