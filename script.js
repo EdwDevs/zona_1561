@@ -1,921 +1,673 @@
 /**
- * 🏢 SISTEMA DE TRANSFERENCIAS - DROSAN & UNIDROGAS
- * Control de transferencias y pagos de productos
- * @version: 1.0.0
+ * 🏢 SISTEMA EJECUTIVO MODERNO - TRANSFERENCIAS
+ * JavaScript optimizado para diseño Fortune 500
+ * @version: Executive Modern 4.0
+ * @performance: Optimized & Responsive
  */
 
-// 🎯 Variables globales
-let firebaseReady = false;
-let transferencias = [];
-let pagos = [];
-let editingId = null;
-let editingType = null; // 'transferencia' o 'pago'
-
-const COLLECTIONS = {
-    TRANSFERENCIAS: 'transferencias_drosan_unidrogas',
-    PAGOS: 'pagos_productos'
+// 🎯 Executive Configuration
+const EXECUTIVE_CONFIG = {
+    COLLECTIONS: {
+        TRANSFERENCIAS: 'transferencias_drosan_unidrogas',
+        PAGOS: 'pagos_productos'
+    },
+    STORAGE_KEYS: {
+        TRANSFERENCIAS: 'exec_transferencias_local',
+        PAGOS: 'exec_pagos_local',
+        SETTINGS: 'exec_settings'
+    },
+    PAGINATION: {
+        PER_PAGE: 10,
+        MAX_PAGES: 10
+    },
+    ANIMATIONS: {
+        STAGGER_DELAY: 100,
+        TRANSITION_DURATION: 300
+    },
+    DEBUG: true
 };
 
-// 🚀 Inicialización
+// 🎯 Executive System Class
+class ExecutiveTransferSystem {
+    constructor() {
+        this.firebaseReady = false;
+        this.transferencias = [];
+        this.pagos = [];
+        this.currentTab = 'transferencias';
+        this.editingId = null;
+        this.editingType = null;
+        this.currentPage = 1;
+        this.searchFilters = {
+            transferencias: '',
+            pagos: '',
+            distribuidora: '',
+            producto: ''
+        };
+        
+        this.init();
+    }
+
+    // 🚀 System Initialization
+    async init() {
+        this.log('🚀 Iniciando Sistema Ejecutivo...', 'info');
+        this.updateConnectionIndicator('connecting', 'Conectando...');
+        
+        // Setup event listeners
+        this.setupEventListeners();
+        this.initializeForms();
+        
+        // Listen for Firebase events
+        window.addEventListener('firebaseReady', () => this.handleFirebaseReady());
+        window.addEventListener('firebaseError', (e) => this.handleFirebaseError(e));
+        
+        // Connection timeout
+        setTimeout(() => this.checkConnectionTimeout(), 10000);
+        
+        // Initialize UI
+        this.initializeUI();
+    }
+
+    // ✅ Firebase Ready Handler
+    async handleFirebaseReady() {
+        this.firebaseReady = true;
+        this.log('✅ Firebase Sistema Ejecutivo conectado', 'success');
+        this.updateConnectionIndicator('connected', 'Conectado a zona1561-4de30');
+        
+        await this.loadAllData();
+        this.updateDashboardMetrics();
+    }
+
+    // ❌ Firebase Error Handler
+    handleFirebaseError(event) {
+        const error = event.detail;
+        this.log(`❌ Error Firebase: ${error.message}`, 'error');
+        this.updateConnectionIndicator('error', `Error: ${error.message}`);
+        this.loadLocalData();
+    }
+
+    // ⏰ Connection Timeout
+    checkConnectionTimeout() {
+        if (!this.firebaseReady) {
+            this.log('⏰ Timeout - Modo offline ejecutivo', 'warning');
+            this.updateConnectionIndicator('error', 'Trabajando offline');
+            this.loadLocalData();
+        }
+    }
+
+    // 🎯 Setup Event Listeners
+    setupEventListeners() {
+        // Tab navigation
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabName = e.currentTarget.dataset.tab;
+                this.switchTab(tabName);
+            });
+        });
+
+        // Search inputs
+        document.getElementById('searchTransferencias')?.addEventListener('input', 
+            this.debounce((e) => this.handleSearch('transferencias', e.target.value), 300));
+        
+        document.getElementById('searchPagos')?.addEventListener('input', 
+            this.debounce((e) => this.handleSearch('pagos', e.target.value), 300));
+
+        // Filter selects
+        document.getElementById('filterDistribuidora')?.addEventListener('change', 
+            (e) => this.handleFilter('distribuidora', e.target.value));
+        
+        document.getElementById('filterProducto')?.addEventListener('change', 
+            (e) => this.handleFilter('producto', e.target.value));
+
+        // Forms
+        document.getElementById('transferenciaForm')?.addEventListener('submit', 
+            (e) => this.handleTransferenciaSubmit(e));
+        
+        document.getElementById('pagoForm')?.addEventListener('submit', 
+            (e) => this.handlePagoSubmit(e));
+
+        // Auto-calculate payment total
+        ['cajasPagadas', 'valorUnitario'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', 
+                () => this.calculatePaymentTotal());
+        });
+
+        // Modal management
+        document.getElementById('modalOverlay')?.addEventListener('click', 
+            () => this.closeAllModals());
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+
+        // Window events
+        window.addEventListener('beforeunload', () => this.saveToLocalStorage());
+        window.addEventListener('focus', () => this.handleWindowFocus());
+    }
+
+    // 📅 Initialize Forms
+    initializeForms() {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const fechaTransferencia = document.getElementById('fechaTransferencia');
+        const fechaPago = document.getElementById('fechaPago');
+        
+        if (fechaTransferencia) fechaTransferencia.value = today;
+        if (fechaPago) fechaPago.value = today;
+    }
+
+    // 🎨 Initialize UI
+    initializeUI() {
+        // Add stagger animation to dashboard cards
+        const dashboardCards = document.querySelectorAll('.dashboard-card');
+        dashboardCards.forEach((card, index) => {
+            card.style.animationDelay = `${index * EXECUTIVE_CONFIG.ANIMATIONS.STAGGER_DELAY}ms`;
+            card.classList.add('stagger-animation');
+        });
+
+        // Initialize tooltips and other UI components
+        this.initializeTooltips();
+        this.setupProgressCircles();
+    }
+
+    // 💡 Initialize Tooltips
+    initializeTooltips() {
+        document.querySelectorAll('[title]').forEach(element => {
+            element.addEventListener('mouseenter', this.showTooltip);
+            element.addEventListener('mouseleave', this.hideTooltip);
+        });
+    }
+
+    // 📊 Setup Progress Circles
+    setupProgressCircles() {
+        document.querySelectorAll('.progress-circle').forEach(circle => {
+            const percentage = circle.dataset.percentage || 0;
+            circle.style.setProperty('--percentage', `${percentage}%`);
+        });
+    }
+
+    // 🔄 Switch Tab
+    switchTab(tabName) {
+        if (this.currentTab === tabName) return;
+        
+        this.log(`🔄 Cambiando a tab: ${tabName}`, 'info');
+        
+        // Update tab buttons
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
+        
+        // Update tab panels
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+        
+        document.getElementById(`${tabName}Panel`)?.classList.add('active');
+        
+        this.currentTab = tabName;
+        
+        // Load data for current tab
+        if (tabName === 'analytics') {
+            this.updateAnalytics();
+        }
+    }
+
+    // 📊 Load All Data
+    async loadAllData() {
+        if (!this.firebaseReady) {
+            this.loadLocalData();
+            return;
+        }
+
+        try {
+            this.log('📊 Cargando datos ejecutivos...', 'info');
+            
+            await Promise.all([
+                this.loadTransferencias(),
+                this.loadPagos()
+            ]);
+            
+            this.renderAllData();
+            this.updateDashboardMetrics();
+            this.log('✅ Datos ejecutivos cargados completamente', 'success');
+            
+        } catch (error) {
+            this.log(`❌ Error cargando datos: ${error.message}`, 'error');
+            this.loadLocalData();
+        }
+    }
+
+    // 📊 Load Transferencias
+    async loadTransferencias() {
+        const collection = window.firebaseCollection(window.firebaseDB, EXECUTIVE_CONFIG.COLLECTIONS.TRANSFERENCIAS);
+        const q = window.firebaseQuery(collection, window.firebaseOrderBy('fecha', 'desc'));
+        const snapshot = await window.firebaseGetDocs(q);
+        
+        this.transferencias = [];
+        snapshot.forEach(doc => {
+            this.transferencias.push({ id: doc.id, ...doc.data() });
+        });
+        
+        this.log(`📊 ${this.transferencias.length} transferencias cargadas`, 'info');
+    }
+
+    // 💰 Load Pagos
+    async loadPagos() {
+        const collection = window.firebaseCollection(window.firebaseDB, EXECUTIVE_CONFIG.COLLECTIONS.PAGOS);
+        const q = window.firebaseQuery(collection, window.firebaseOrderBy('fecha', 'desc'));
+        const snapshot = await window.firebaseGetDocs(q);
+        
+        this.pagos = [];
+        snapshot.forEach(doc => {
+            this.pagos.push({ id: doc.id, ...doc.data() });
+        });
+        
+        this.log(`💰 ${this.pagos.length} pagos cargados`, 'info');
+    }
+
+    // 💾 Load Local Data
+    loadLocalData() {
+        try {
+            const transferenciasLocal = localStorage.getItem(EXECUTIVE_CONFIG.STORAGE_KEYS.TRANSFERENCIAS);
+            const pagosLocal = localStorage.getItem(EXECUTIVE_CONFIG.STORAGE_KEYS.PAGOS);
+            
+            this.transferencias = transferenciasLocal ? JSON.parse(transferenciasLocal) : [];
+            this.pagos = pagosLocal ? JSON.parse(pagosLocal) : [];
+            
+            this.log(`💾 Datos locales: ${this.transferencias.length} transferencias, ${this.pagos.length} pagos`, 'info');
+            
+            this.renderAllData();
+            this.updateDashboardMetrics();
+            
+        } catch (error) {
+            this.log(`❌ Error cargando datos locales: ${error.message}`, 'error');
+            this.transferencias = [];
+            this.pagos = [];
+        }
+    }
+
+    // 💾 Save to Local Storage
+    saveToLocalStorage() {
+        try {
+            localStorage.setItem(EXECUTIVE_CONFIG.STORAGE_KEYS.TRANSFERENCIAS, JSON.stringify(this.transferencias));
+            localStorage.setItem(EXECUTIVE_CONFIG.STORAGE_KEYS.PAGOS, JSON.stringify(this.pagos));
+            
+            if (EXECUTIVE_CONFIG.DEBUG) {
+                this.log('💾 Datos guardados en localStorage', 'info');
+            }
+        } catch (error) {
+            this.log('❌ Error guardando en localStorage', 'error');
+        }
+    }
+
+    // 🎨 Render All Data
+    renderAllData() {
+        this.renderTransferencias();
+        this.renderPagos();
+        this.updateRecordCounts();
+    }
+
+    // 📊 Update Dashboard Metrics
+    updateDashboardMetrics() {
+        const totalTransferencias = this.transferencias.length;
+        const totalPagos = this.pagos.length;
+        const totalCajas = this.pagos.reduce((sum, pago) => sum + (pago.cajasPagadas || 0), 0);
+        const montoTotal = this.pagos.reduce((sum, pago) => sum + (pago.totalPago || 0), 0);
+        
+        this.updateMetricCard('totalTransferencias', totalTransferencias);
+        this.updateMetricCard('totalPagos', totalPagos);
+        this.updateMetricCard('totalCajas', totalCajas);
+        this.updateMetricCard('montoTotal', this.formatCurrency(montoTotal));
+        
+        // Update trend indicators (simulated)
+        this.updateTrendIndicators();
+    }
+
+    // 📈 Update Metric Card
+    updateMetricCard(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            // Add counting animation
+            this.animateCounter(element, element.textContent, value);
+        }
+    }
+
+    // ✨ Animate Counter
+    animateCounter(element, from, to) {
+        const fromValue = typeof from === 'string' ? parseFloat(from.replace(/[^\d.-]/g, '')) || 0 : from;
+        const toValue = typeof to === 'string' ? parseFloat(to.replace(/[^\d.-]/g, '')) || 0 : to;
+        
+        const duration = 1000;
+        const startTime = Date.now();
+        
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing function
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            const current = fromValue + (toValue - fromValue) * easeOut;
+            
+            if (typeof to === 'string' && to.includes('$')) {
+                element.textContent = this.formatCurrency(current);
+            } else {
+                element.textContent = Math.round(current);
+            }
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                element.textContent = to;
+            }
+        };
+        
+        requestAnimationFrame(animate);
+    }
+
+    // 📈 Update Trend Indicators
+    updateTrendIndicators() {
+        // Simulated trend calculations
+        const trends = {
+            transferencias: Math.random() > 0.5 ? 'positive' : 'negative',
+            pagos: Math.random() > 0.7 ? 'positive' : 'neutral',
+            cajas: 'neutral',
+            monto: 'positive'
+        };
+        
+        // Update trend classes and percentages
+        Object.entries(trends).forEach(([key, trend]) => {
+            const trendElement = document.querySelector(`#total${key.charAt(0).toUpperCase() + key.slice(1)}`);
+            if (trendElement) {
+                const cardTrend = trendElement.closest('.dashboard-card')?.querySelector('.card-trend');
+                if (cardTrend) {
+                    cardTrend.className = `card-trend ${trend}`;
+                }
+            }
+        });
+    }
+
+    // 🔍 Handle Search
+    handleSearch(type, value) {
+        this.searchFilters[type] = value.toLowerCase().trim();
+        
+        if (type === 'transferencias') {
+            this.renderTransferencias();
+        } else if (type === 'pagos') {
+            this.renderPagos();
+        }
+        
+        this.log(`🔍 Búsqueda ${type}: "${value}"`, 'info');
+    }
+
+    // 🎛️ Handle Filter
+    handleFilter(filterType, value) {
+        this.searchFilters[filterType] = value;
+        
+        if (filterType === 'distribuidora') {
+            this.renderTransferencias();
+        } else if (filterType === 'producto') {
+            this.renderPagos();
+        }
+        
+        this.log(`🎛️ Filtro ${filterType}: "${value}"`, 'info');
+    }
+
+    // 💰 Calculate Payment Total
+    calculatePaymentTotal() {
+        const cajas = parseFloat(document.getElementById('cajasPagadas')?.value) || 0;
+        const valor = parseFloat(document.getElementById('valorUnitario')?.value) || 0;
+        const total = cajas * valor;
+        
+        const totalElement = document.getElementById('totalPago');
+        if (totalElement) {
+            totalElement.value = total > 0 ? this.formatCurrency(total) : '';
+        }
+    }
+
+    // 💱 Format Currency
+    formatCurrency(amount) {
+        return new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount);
+    }
+
+    // 📱 Update Connection Indicator
+    updateConnectionIndicator(status, message) {
+        const indicator = document.getElementById('connectionIndicator');
+        const dot = indicator?.querySelector('.indicator-dot');
+        const text = indicator?.querySelector('.indicator-text');
+        
+        if (dot && text) {
+            dot.className = `indicator-dot ${status}`;
+            text.textContent = message;
+        }
+    }
+
+    // 📝 Logging System
+    log(message, type = 'info') {
+        const logContainer = document.getElementById('logContainer');
+        if (!logContainer) return;
+        
+        const timestamp = new Date().toLocaleTimeString('es-CO');
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry ${type}`;
+        
+        const icons = {
+            'info': 'ℹ️',
+            'success': '✅',
+            'warning': '⚠️',
+            'error': '❌'
+        };
+        
+        logEntry.innerHTML = `
+            <span class="timestamp">[${timestamp}]</span>
+            ${icons[type]} ${message}
+        `;
+        
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+        
+        // Console log with colors
+        const colors = {
+            'info': 'color: #3b82f6',
+            'success': 'color: #059669',
+            'warning': 'color: #d97706',
+            'error': 'color: #dc2626'
+        };
+        
+        console.log(`%c[Executive System] ${message}`, colors[type]);
+        
+        // Keep only last 100 entries
+        const entries = logContainer.querySelectorAll('.log-entry');
+        if (entries.length > 100) {
+            entries[0].remove();
+        }
+    }
+
+    // ⏱️ Debounce Utility
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // ⌨️ Keyboard Shortcuts
+    handleKeyboardShortcuts(event) {
+        // Ctrl/Cmd + S: Save current form
+        if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+            event.preventDefault();
+            this.saveCurrentForm();
+        }
+        
+        // Escape: Close modals
+        if (event.key === 'Escape') {
+            this.closeAllModals();
+        }
+        
+        // Ctrl/Cmd + F: Focus search
+        if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+            event.preventDefault();
+            this.focusCurrentSearch();
+        }
+    }
+
+    // 💾 Save Current Form
+    saveCurrentForm() {
+        const activeTab = document.querySelector('.tab-panel.active');
+        const form = activeTab?.querySelector('form');
+        
+        if (form) {
+            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+            form.dispatchEvent(submitEvent);
+        }
+    }
+
+    // ❌ Close All Modals
+    closeAllModals() {
+        document.querySelectorAll('.executive-modal').forEach(modal => {
+            modal.classList.remove('active');
+        });
+        
+        document.getElementById('modalOverlay')?.classList.remove('active');
+    }
+
+    // 🔍 Focus Current Search
+    focusCurrentSearch() {
+        const activeTab = document.querySelector('.tab-panel.active');
+        const searchInput = activeTab?.querySelector('input[type="text"]');
+        
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
+    }
+
+    // 🪟 Handle Window Focus
+    handleWindowFocus() {
+        if (this.firebaseReady) {
+            // Refresh data when window regains focus
+            this.loadAllData();
+        }
+    }
+}
+
+// 🌐 Global Functions for HTML Integration
+let executiveSystem;
+
+// System initialization
 document.addEventListener('DOMContentLoaded', () => {
-    log('🚀 Iniciando Sistema de Transferencias...', 'info');
-    setupEventListeners();
-    initializeForms();
-    
-    // Escuchar Firebase
-    window.addEventListener('firebaseReady', handleFirebaseReady);
-    window.addEventListener('firebaseError', handleFirebaseError);
-    
-    updateConnectionStatus('connecting', 'Conectando...', 'Inicializando sistema...');
-    
-    setTimeout(checkConnectionTimeout, 10000);
+    executiveSystem = new ExecutiveTransferSystem();
+    console.log('🏢 Executive Transfer System initialized');
 });
 
-// ✅ Firebase listo
-function handleFirebaseReady() {
-    firebaseReady = true;
-    log('✅ Firebase conectado - Sistema listo', 'success');
-    updateConnectionStatus('connected', '✅ Sistema Operativo', 'Conectado a zona1561-4de30');
-    
-    loadData();
+// Modal functions
+function showQuickAdd() {
+    document.getElementById('quickAddModal')?.classList.add('active');
+    document.getElementById('modalOverlay')?.classList.add('active');
 }
 
-// ❌ Error Firebase
-function handleFirebaseError(event) {
-    const error = event.detail;
-    log(`❌ Error Firebase: ${error.message}`, 'error');
-    updateConnectionStatus('error', '❌ Error Conexión', error.message);
-    loadLocalData();
+function closeQuickAdd() {
+    document.getElementById('quickAddModal')?.classList.remove('active');
+    document.getElementById('modalOverlay')?.classList.remove('active');
 }
 
-// ⏰ Timeout conexión
-function checkConnectionTimeout() {
-    if (!firebaseReady) {
-        log('⏰ Timeout - Trabajando offline', 'warning');
-        updateConnectionStatus('error', '⏰ Modo Offline', 'Usando datos locales');
-        loadLocalData();
+function showNotifications() {
+    document.getElementById('notificationsModal')?.classList.add('active');
+    document.getElementById('modalOverlay')?.classList.add('active');
+}
+
+function closeNotifications() {
+    document.getElementById('notificationsModal')?.classList.remove('active');
+    document.getElementById('modalOverlay')?.classList.remove('active');
+}
+
+// Quick actions
+function quickAddTransferencia() {
+    closeQuickAdd();
+    executiveSystem?.switchTab('transferencias');
+    document.getElementById('distribuidora')?.focus();
+}
+
+function quickAddPago() {
+    closeQuickAdd();
+    executiveSystem?.switchTab('pagos');
+    document.getElementById('clientePago')?.focus();
+}
+
+// Utility functions
+function refreshData() {
+    executiveSystem?.loadAllData();
+}
+
+function exportData() {
+    if (executiveSystem?.currentTab === 'transferencias') {
+        executiveSystem?.exportTransferencias();
+    } else if (executiveSystem?.currentTab === 'pagos') {
+        executiveSystem?.exportPagos();
     }
 }
 
-// 🎯 Configurar event listeners
-function setupEventListeners() {
-    // Formularios
-    document.getElementById('transferenciaForm').addEventListener('submit', handleTransferenciaSubmit);
-    document.getElementById('pagoForm').addEventListener('submit', handlePagoSubmit);
-    
-    // Búsquedas
-    document.getElementById('searchTransferencias').addEventListener('input', 
-        debounce(() => filterTransferencias(), 300));
-    document.getElementById('searchPagos').addEventListener('input', 
-        debounce(() => filterPagos(), 300));
-    
-    // Cálculo automático en pagos
-    document.getElementById('cajasPagadas').addEventListener('input', calcularTotalPago);
-    document.getElementById('valorUnitario').addEventListener('input', calcularTotalPago);
+function toggleSettings() {
+    console.log('Settings panel - Coming soon');
 }
 
-// 📅 Inicializar formularios
-function initializeForms() {
-    // Establecer fecha actual
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('fechaTransferencia').value = today;
-    document.getElementById('fechaPago').value = today;
-}
-
-// 💰 Calcular total de pago
-function calcularTotalPago() {
-    const cajas = parseFloat(document.getElementById('cajasPagadas').value) || 0;
-    const valor = parseFloat(document.getElementById('valorUnitario').value) || 0;
-    const total = cajas * valor;
-    
-    document.getElementById('totalPago').value = total > 0 ? 
-        `$${total.toLocaleString('es-CO', { minimumFractionDigits: 2 })}` : '';
-}
-
-// 📊 Cargar datos
-async function loadData() {
-    if (!firebaseReady) {
-        loadLocalData();
-        return;
-    }
-
-    try {
-        log('📊 Cargando datos desde Firebase...', 'info');
-        
-        // Cargar transferencias
-        const transferenciasQuery = window.firebaseQuery(
-            window.firebaseCollection(window.firebaseDB, COLLECTIONS.TRANSFERENCIAS),
-            window.firebaseOrderBy('fecha', 'desc')
-        );
-        const transferenciasSnapshot = await window.firebaseGetDocs(transferenciasQuery);
-        
-        transferencias = [];
-        transferenciasSnapshot.forEach((doc) => {
-            transferencias.push({ id: doc.id, ...doc.data() });
-        });
-        
-        // Cargar pagos
-        const pagosQuery = window.firebaseQuery(
-            window.firebaseCollection(window.firebaseDB, COLLECTIONS.PAGOS),
-            window.firebaseOrderBy('fecha', 'desc')
-        );
-        const pagosSnapshot = await window.firebaseGetDocs(pagosQuery);
-        
-        pagos = [];
-        pagosSnapshot.forEach((doc) => {
-            pagos.push({ id: doc.id, ...doc.data() });
-        });
-        
-        log(`✅ Datos cargados: ${transferencias.length} transferencias, ${pagos.length} pagos`, 'success');
-        
-        renderData();
-        updateStats();
-        updateReports();
-        
-    } catch (error) {
-        log(`❌ Error cargando datos: ${error.message}`, 'error');
-        loadLocalData();
-    }
-}
-
-// 💾 Cargar datos locales
-function loadLocalData() {
-    try {
-        const localTransferencias = localStorage.getItem('transferencias_local');
-        const localPagos = localStorage.getItem('pagos_local');
-        
-        transferencias = localTransferencias ? JSON.parse(localTransferencias) : [];
-        pagos = localPagos ? JSON.parse(localPagos) : [];
-        
-        log(`📱 Datos locales: ${transferencias.length} transferencias, ${pagos.length} pagos`, 'info');
-        
-        renderData();
-        updateStats();
-        updateReports();
-        
-    } catch (error) {
-        log(`❌ Error cargando datos locales: ${error.message}`, 'error');
-        transferencias = [];
-        pagos = [];
-    }
-}
-
-// 💾 Guardar datos locales
-function saveLocalData() {
-    try {
-        localStorage.setItem('transferencias_local', JSON.stringify(transferencias));
-        localStorage.setItem('pagos_local', JSON.stringify(pagos));
-    } catch (error) {
-        log('❌ Error guardando datos locales', 'error');
-    }
-}
-
-// 📝 Manejar envío transferencia
-async function handleTransferenciaSubmit(e) {
-    e.preventDefault();
-    
-    const formData = {
-        distribuidora: document.getElementById('distribuidora').value,
-        cliente: document.getElementById('clienteTransferencia').value.trim(),
-        producto: document.getElementById('productoTransferencia').value.trim(),
-        cantidad: parseInt(document.getElementById('cantidadTransferencia').value) || 0,
-        observaciones: document.getElementById('observacionesTransferencia').value.trim(),
-        fecha: document.getElementById('fechaTransferencia').value,
-        fechaRegistro: new Date().toISOString()
-    };
-    
-    if (!formData.distribuidora || !formData.cliente || !formData.fecha) {
-        alert('Por favor completa los campos obligatorios');
-        return;
-    }
-    
-    try {
-        if (editingId && editingType === 'transferencia') {
-            await updateTransferencia(editingId, formData);
-        } else {
-            await addTransferencia(formData);
-        }
-        
-        clearTransferenciaForm();
-        
-    } catch (error) {
-        log(`❌ Error guardando transferencia: ${error.message}`, 'error');
-        alert(`Error: ${error.message}`);
-    }
-}
-
-// 📝 Manejar envío pago
-async function handlePagoSubmit(e) {
-    e.preventDefault();
-    
-    const cajas = parseInt(document.getElementById('cajasPagadas').value) || 0;
-    const valor = parseFloat(document.getElementById('valorUnitario').value) || 0;
-    
-    const formData = {
-        cliente: document.getElementById('clientePago').value.trim(),
-        producto: document.getElementById('productoPago').value,
-        cajasPagadas: cajas,
-        valorUnitario: valor,
-        totalPago: cajas * valor,
-        observaciones: document.getElementById('observacionesPago').value.trim(),
-        fecha: document.getElementById('fechaPago').value,
-        fechaRegistro: new Date().toISOString()
-    };
-    
-    if (!formData.cliente || !formData.producto || !formData.cajasPagadas || !formData.fecha) {
-        alert('Por favor completa los campos obligatorios');
-        return;
-    }
-    
-    try {
-        if (editingId && editingType === 'pago') {
-            await updatePago(editingId, formData);
-        } else {
-            await addPago(formData);
-        }
-        
-        clearPagoForm();
-        
-    } catch (error) {
-        log(`❌ Error guardando pago: ${error.message}`, 'error');
-        alert(`Error: ${error.message}`);
-    }
-}
-
-// ➕ Agregar transferencia
-async function addTransferencia(data) {
-    if (firebaseReady) {
-        try {
-            const collection = window.firebaseCollection(window.firebaseDB, COLLECTIONS.TRANSFERENCIAS);
-            const docRef = await window.firebaseAddDoc(collection, data);
-            data.id = docRef.id;
-            log(`✅ Transferencia guardada en Firebase`, 'success');
-        } catch (error) {
-            data.id = 'local_' + Date.now();
-            log(`📱 Transferencia guardada localmente: ${error.message}`, 'warning');
-        }
-    } else {
-        data.id = 'local_' + Date.now();
-        log(`📱 Transferencia guardada localmente`, 'warning');
-    }
-    
-    transferencias.unshift(data);
-    saveLocalData();
-    renderData();
-    updateStats();
-    updateReports();
-}
-
-// ➕ Agregar pago
-async function addPago(data) {
-    if (firebaseReady) {
-        try {
-            const collection = window.firebaseCollection(window.firebaseDB, COLLECTIONS.PAGOS);
-            const docRef = await window.firebaseAddDoc(collection, data);
-            data.id = docRef.id;
-            log(`✅ Pago guardado en Firebase`, 'success');
-        } catch (error) {
-            data.id = 'local_' + Date.now();
-            log(`📱 Pago guardado localmente: ${error.message}`, 'warning');
-        }
-    } else {
-        data.id = 'local_' + Date.now();
-        log(`📱 Pago guardado localmente`, 'warning');
-    }
-    
-    pagos.unshift(data);
-    saveLocalData();
-    renderData();
-    updateStats();
-    updateReports();
-}
-
-// ✏️ Actualizar transferencia
-async function updateTransferencia(id, data) {
-    const index = transferencias.findIndex(t => t.id === id);
-    if (index === -1) return;
-    
-    if (firebaseReady && !id.startsWith('local_')) {
-        try {
-            const docRef = window.firebaseDoc(window.firebaseDB, COLLECTIONS.TRANSFERENCIAS, id);
-            await window.firebaseUpdateDoc(docRef, data);
-            log(`✅ Transferencia actualizada en Firebase`, 'success');
-        } catch (error) {
-            log(`📱 Error Firebase, actualizando localmente: ${error.message}`, 'warning');
-        }
-    }
-    
-    transferencias[index] = { ...transferencias[index], ...data };
-    saveLocalData();
-    renderData();
-    updateStats();
-    updateReports();
-}
-
-// ✏️ Actualizar pago
-async function updatePago(id, data) {
-    const index = pagos.findIndex(p => p.id === id);
-    if (index === -1) return;
-    
-    if (firebaseReady && !id.startsWith('local_')) {
-        try {
-            const docRef = window.firebaseDoc(window.firebaseDB, COLLECTIONS.PAGOS, id);
-            await window.firebaseUpdateDoc(docRef, data);
-            log(`✅ Pago actualizado en Firebase`, 'success');
-        } catch (error) {
-            log(`📱 Error Firebase, actualizando localmente: ${error.message}`, 'warning');
-        }
-    }
-    
-    pagos[index] = { ...pagos[index], ...data };
-    saveLocalData();
-    renderData();
-    updateStats();
-    updateReports();
-}
-
-// 🗑️ Eliminar transferencia
-async function deleteTransferencia(id) {
-    const transferencia = transferencias.find(t => t.id === id);
-    if (!transferencia) return;
-    
-    if (!confirm(`¿Eliminar transferencia de ${transferencia.cliente}?\n\nEsta acción no se puede deshacer.`)) {
-        return;
-    }
-    
-    const index = transferencias.findIndex(t => t.id === id);
-    
-    if (firebaseReady && !id.startsWith('local_')) {
-        try {
-            const docRef = window.firebaseDoc(window.firebaseDB, COLLECTIONS.TRANSFERENCIAS, id);
-            await window.firebaseDeleteDoc(docRef);
-            log(`✅ Transferencia eliminada de Firebase`, 'success');
-        } catch (error) {
-            log(`📱 Error Firebase, eliminando localmente: ${error.message}`, 'warning');
-        }
-    }
-    
-    transferencias.splice(index, 1);
-    saveLocalData();
-    renderData();
-    updateStats();
-    updateReports();
-    
-    log(`🗑️ Transferencia eliminada`, 'info');
-}
-
-// 🗑️ Eliminar pago
-async function deletePago(id) {
-    const pago = pagos.find(p => p.id === id);
-    if (!pago) return;
-    
-    if (!confirm(`¿Eliminar pago de ${pago.cliente} - ${pago.producto}?\n\nEsta acción no se puede deshacer.`)) {
-        return;
-    }
-    
-    const index = pagos.findIndex(p => p.id === id);
-    
-    if (firebaseReady && !id.startsWith('local_')) {
-        try {
-            const docRef = window.firebaseDoc(window.firebaseDB, COLLECTIONS.PAGOS, id);
-            await window.firebaseDeleteDoc(docRef);
-            log(`✅ Pago eliminado de Firebase`, 'success');
-        } catch (error) {
-            log(`📱 Error Firebase, eliminando localmente: ${error.message}`, 'warning');
-        }
-    }
-    
-    pagos.splice(index, 1);
-    saveLocalData();
-    renderData();
-    updateStats();
-    updateReports();
-    
-    log(`🗑️ Pago eliminado`, 'info');
-}
-
-// 🎨 Renderizar datos
-function renderData() {
-    renderTransferencias();
-    renderPagos();
-}
-
-// 🎨 Renderizar transferencias
-function renderTransferencias(lista = transferencias) {
-    const tableBody = document.getElementById('transferenciasTableBody');
-    const emptyState = document.getElementById('transferenciasEmpty');
-    
-    if (!tableBody) return;
-    
-    tableBody.innerHTML = '';
-    
-    if (lista.length === 0) {
-        document.querySelector('#transferenciasTab .table-container').style.display = 'none';
-        emptyState.style.display = 'block';
-        return;
-    }
-    
-    document.querySelector('#transferenciasTab .table-container').style.display = 'block';
-    emptyState.style.display = 'none';
-    
-    lista.forEach((transferencia) => {
-        const row = document.createElement('tr');
-        row.className = 'data-row';
-        
-        const fecha = new Date(transferencia.fecha).toLocaleDateString('es-CO');
-        
-        row.innerHTML = `
-            <td>${fecha}</td>
-            <td>
-                <span class="distribuidora-badge ${transferencia.distribuidora.toLowerCase()}">
-                    ${transferencia.distribuidora}
-                </span>
-            </td>
-            <td>${highlightSearch(transferencia.cliente, 'searchTransferencias')}</td>
-            <td>${highlightSearch(transferencia.producto || '-', 'searchTransferencias')}</td>
-            <td>${transferencia.cantidad || '-'}</td>
-            <td class="observaciones-cell">
-                ${highlightSearch(transferencia.observaciones || '-', 'searchTransferencias')}
-            </td>
-            <td>
-                <div class="action-buttons">
-                    <button onclick="editTransferencia('${transferencia.id}')" class="btn btn-edit" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button onclick="deleteTransferencia('${transferencia.id}')" class="btn btn-delete" title="Eliminar">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
-        
-        tableBody.appendChild(row);
-    });
-    
-    animateRows('#transferenciasTab .data-row');
-}
-
-// 🎨 Renderizar pagos
-function renderPagos(lista = pagos) {
-    const tableBody = document.getElementById('pagosTableBody');
-    const emptyState = document.getElementById('pagosEmpty');
-    
-    if (!tableBody) return;
-    
-    tableBody.innerHTML = '';
-    
-    if (lista.length === 0) {
-        document.querySelector('#pagosTab .table-container').style.display = 'none';
-        emptyState.style.display = 'block';
-        return;
-    }
-    
-    document.querySelector('#pagosTab .table-container').style.display = 'block';
-    emptyState.style.display = 'none';
-    
-    lista.forEach((pago) => {
-        const row = document.createElement('tr');
-        row.className = 'data-row';
-        
-        const fecha = new Date(pago.fecha).toLocaleDateString('es-CO');
-        const valorUnitario = pago.valorUnitario ? 
-            `$${pago.valorUnitario.toLocaleString('es-CO')}` : '-';
-        const total = pago.totalPago ? 
-            `$${pago.totalPago.toLocaleString('es-CO')}` : '-';
-        
-        row.innerHTML = `
-            <td>${fecha}</td>
-            <td>${highlightSearch(pago.cliente, 'searchPagos')}</td>
-            <td>
-                <span class="producto-badge ${pago.producto.toLowerCase().replace(/\s+/g, '-')}">
-                    ${pago.producto}
-                </span>
-            </td>
-            <td><strong>${pago.cajasPagadas}</strong></td>
-            <td>${valorUnitario}</td>
-            <td><strong>${total}</strong></td>
-            <td class="observaciones-cell">
-                ${highlightSearch(pago.observaciones || '-', 'searchPagos')}
-            </td>
-            <td>
-                <div class="action-buttons">
-                    <button onclick="editPago('${pago.id}')" class="btn btn-edit" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button onclick="deletePago('${pago.id}')" class="btn btn-delete" title="Eliminar">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
-        
-        tableBody.appendChild(row);
-    });
-    
-    animateRows('#pagosTab .data-row');
-}
-
-// 🔍 Filtrar transferencias
-function filterTransferencias() {
-    const searchTerm = document.getElementById('searchTransferencias').value.toLowerCase().trim();
-    
-    if (!searchTerm) {
-        renderTransferencias();
-        return;
-    }
-    
-    const filtered = transferencias.filter(t => 
-        t.cliente.toLowerCase().includes(searchTerm) ||
-        t.distribuidora.toLowerCase().includes(searchTerm) ||
-        (t.producto && t.producto.toLowerCase().includes(searchTerm)) ||
-        (t.observaciones && t.observaciones.toLowerCase().includes(searchTerm))
-    );
-    
-    renderTransferencias(filtered);
-    log(`🔍 Transferencias filtradas: ${filtered.length}/${transferencias.length}`, 'info');
-}
-
-// 🔍 Filtrar pagos
-function filterPagos() {
-    const searchTerm = document.getElementById('searchPagos').value.toLowerCase().trim();
-    
-    if (!searchTerm) {
-        renderPagos();
-        return;
-    }
-    
-    const filtered = pagos.filter(p => 
-        p.cliente.toLowerCase().includes(searchTerm) ||
-        p.producto.toLowerCase().includes(searchTerm) ||
-        (p.observaciones && p.observaciones.toLowerCase().includes(searchTerm))
-    );
-    
-    renderPagos(filtered);
-    log(`🔍 Pagos filtrados: ${filtered.length}/${pagos.length}`, 'info');
-}
-
-// 🔍 Resaltar búsqueda
-function highlightSearch(text, inputId) {
-    const searchTerm = document.getElementById(inputId).value.trim();
-    if (!searchTerm || !text) return text || '';
-    
-    const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
-}
-
-// 🛡️ Escapar regex
-function escapeRegex(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// ✏️ Editar transferencia
-function editTransferencia(id) {
-    const transferencia = transferencias.find(t => t.id === id);
-    if (!transferencia) return;
-    
-    document.getElementById('distribuidora').value = transferencia.distribuidora;
-    document.getElementById('clienteTransferencia').value = transferencia.cliente;
-    document.getElementById('productoTransferencia').value = transferencia.producto || '';
-    document.getElementById('cantidadTransferencia').value = transferencia.cantidad || '';
-    document.getElementById('observacionesTransferencia').value = transferencia.observaciones || '';
-    document.getElementById('fechaTransferencia').value = transferencia.fecha;
-    
-    editingId = id;
-    editingType = 'transferencia';
-    
-    // Cambiar a tab de transferencias y scroll
-    showTab('transferencias');
-    document.getElementById('transferenciaForm').scrollIntoView({ behavior: 'smooth' });
-    
-    log(`✏️ Editando transferencia: ${transferencia.cliente}`, 'info');
-}
-
-// ✏️ Editar pago
-function editPago(id) {
-    const pago = pagos.find(p => p.id === id);
-    if (!pago) return;
-    
-    document.getElementById('clientePago').value = pago.cliente;
-    document.getElementById('productoPago').value = pago.producto;
-    document.getElementById('cajasPagadas').value = pago.cajasPagadas;
-    document.getElementById('valorUnitario').value = pago.valorUnitario || '';
-    document.getElementById('observacionesPago').value = pago.observaciones || '';
-    document.getElementById('fechaPago').value = pago.fecha;
-    
-    calcularTotalPago();
-    
-    editingId = id;
-    editingType = 'pago';
-    
-    // Cambiar a tab de pagos y scroll
-    showTab('pagos');
-    document.getElementById('pagoForm').scrollIntoView({ behavior: 'smooth' });
-    
-    log(`✏️ Editando pago: ${pago.cliente} - ${pago.producto}`, 'info');
-}
-
-// 🧹 Limpiar formulario transferencia
-function clearTransferenciaForm() {
-    document.getElementById('transferenciaForm').reset();
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('fechaTransferencia').value = today;
-    editingId = null;
-    editingType = null;
-}
-
-// 🧹 Limpiar formulario pago
-function clearPagoForm() {
-    document.getElementById('pagoForm').reset();
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('fechaPago').value = today;
-    editingId = null;
-    editingType = null;
-}
-
-// 📊 Actualizar estadísticas
-function updateStats() {
-    const totalTransferenciasEl = document.getElementById('totalTransferencias');
-    const totalPagosEl = document.getElementById('totalPagos');
-    const montoTotalEl = document.getElementById('montoTotal');
-    
-    if (totalTransferenciasEl) totalTransferenciasEl.textContent = transferencias.length;
-    if (totalPagosEl) totalPagosEl.textContent = pagos.length;
-    
-    const montoTotal = pagos.reduce((sum, pago) => sum + (pago.totalPago || 0), 0);
-    if (montoTotalEl) {
-        montoTotalEl.textContent = `$${montoTotal.toLocaleString('es-CO')}`;
-    }
-}
-
-// 📊 Actualizar reportes
-function updateReports() {
-    // Estadísticas generales
-    document.getElementById('reporteTotalTransferencias').textContent = transferencias.length;
-    document.getElementById('reporteTotalPagos').textContent = pagos.length;
-    
-    const totalCajas = pagos.reduce((sum, pago) => sum + (pago.cajasPagadas || 0), 0);
-    document.getElementById('reporteTotalCajas').textContent = totalCajas;
-    
-    const montoTotal = pagos.reduce((sum, pago) => sum + (pago.totalPago || 0), 0);
-    document.getElementById('reporteMontoTotal').textContent = `$${montoTotal.toLocaleString('es-CO')}`;
-    
-    // Por distribuidora
-    const drosanTransferencias = transferencias.filter(t => t.distribuidora === 'DROSAN').length;
-    const unidrogasTransferencias = transferencias.filter(t => t.distribuidora === 'UNIDROGAS').length;
-    
-    document.getElementById('drosanTransferencias').textContent = drosanTransferencias;
-    document.getElementById('unidrogasTransferencias').textContent = unidrogasTransferencias;
-    
-    // Contar productos únicos por distribuidora
-    const drosanProductos = new Set(
-        transferencias.filter(t => t.distribuidora === 'DROSAN' && t.producto)
-                     .map(t => t.producto)
-    ).size;
-    const unidrogasProductos = new Set(
-        transferencias.filter(t => t.distribuidora === 'UNIDROGAS' && t.producto)
-                     .map(t => t.producto)
-    ).size;
-    
-    document.getElementById('drosanProductos').textContent = drosanProductos;
-    document.getElementById('unidrogasProductos').textContent = unidrogasProductos;
-    
-    // Por productos
-    const descongelPagos = pagos.filter(p => p.producto === 'DESCONGELX100');
-    const multidol400Pagos = pagos.filter(p => p.producto === 'MULTIDOL X400');
-    const multidol800Pagos = pagos.filter(p => p.producto === 'MULTIDOL X800');
-    
-    const descongelCajas = descongelPagos.reduce((sum, p) => sum + p.cajasPagadas, 0);
-    const multidol400Cajas = multidol400Pagos.reduce((sum, p) => sum + p.cajasPagadas, 0);
-    const multidol800Cajas = multidol800Pagos.reduce((sum, p) => sum + p.cajasPagadas, 0);
-    
-    const descongelTotal = descongelPagos.reduce((sum, p) => sum + (p.totalPago || 0), 0);
-    const multidol400Total = multidol400Pagos.reduce((sum, p) => sum + (p.totalPago || 0), 0);
-    const multidol800Total = multidol800Pagos.reduce((sum, p) => sum + (p.totalPago || 0), 0);
-    
-    document.getElementById('descongelCajas').textContent = descongelCajas;
-    document.getElementById('multidol400Cajas').textContent = multidol400Cajas;
-    document.getElementById('multidol800Cajas').textContent = multidol800Cajas;
-    
-    document.getElementById('descongelTotal').textContent = `$${descongelTotal.toLocaleString('es-CO')}`;
-    document.getElementById('multidol400Total').textContent = `$${multidol400Total.toLocaleString('es-CO')}`;
-    document.getElementById('multidol800Total').textContent = `$${multidol800Total.toLocaleString('es-CO')}`;
-}
-
-// 🎯 Gestión de tabs
-function showTab(tabName) {
-    // Ocultar todos los tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Quitar clase active de todos los botones
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Mostrar tab seleccionado
-    const targetTab = document.getElementById(tabName + 'Tab');
-    if (targetTab) {
-        targetTab.classList.add('active');
-    }
-    
-    // Activar botón correspondiente
-    const targetBtn = document.querySelector(`[onclick="showTab('${tabName}')"]`);
-    if (targetBtn) {
-        targetBtn.classList.add('active');
-    }
-    
-    // Actualizar reportes si se selecciona esa tab
-    if (tabName === 'reportes') {
-        updateReports();
-    }
-}
-
-// 📤 Exportar transferencias
-function exportTransferencias() {
-    try {
-        const dataToExport = transferencias.map((t, index) => ({
-            'N°': index + 1,
-            'FECHA': new Date(t.fecha).toLocaleDateString('es-CO'),
-            'DISTRIBUIDORA': t.distribuidora,
-            'CLIENTE': t.cliente,
-            'PRODUCTO': t.producto || '',
-            'CANTIDAD': t.cantidad || '',
-            'OBSERVACIONES': t.observaciones || '',
-            'FECHA_REGISTRO': new Date(t.fechaRegistro).toLocaleString('es-CO')
-        }));
-        
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Transferencias');
-        
-        const fecha = new Date().toISOString().slice(0, 10);
-        XLSX.writeFile(workbook, `Transferencias_${fecha}.xlsx`);
-        
-        log(`📊 Excel transferencias exportado: ${transferencias.length} registros`, 'success');
-        
-    } catch (error) {
-        log(`❌ Error exportando transferencias: ${error.message}`, 'error');
-        alert('Error al exportar transferencias');
-    }
-}
-
-// 📤 Exportar pagos
-function exportPagos() {
-    try {
-        const dataToExport = pagos.map((p, index) => ({
-            'N°': index + 1,
-            'FECHA': new Date(p.fecha).toLocaleDateString('es-CO'),
-            'CLIENTE': p.cliente,
-            'PRODUCTO': p.producto,
-            'CAJAS_PAGADAS': p.cajasPagadas,
-            'VALOR_UNITARIO': p.valorUnitario || 0,
-            'TOTAL_PAGO': p.totalPago || 0,
-            'OBSERVACIONES': p.observaciones || '',
-            'FECHA_REGISTRO': new Date(p.fechaRegistro).toLocaleString('es-CO')
-        }));
-        
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Pagos_Productos');
-        
-        const fecha = new Date().toISOString().slice(0, 10);
-        XLSX.writeFile(workbook, `Pagos_Productos_${fecha}.xlsx`);
-        
-        log(`📊 Excel pagos exportado: ${pagos.length} registros`, 'success');
-        
-    } catch (error) {
-        log(`❌ Error exportando pagos: ${error.message}`, 'error');
-        alert('Error al exportar pagos');
-    }
-}
-
-// ✨ Animación de filas
-function animateRows(selector) {
-    const rows = document.querySelectorAll(selector);
-    rows.forEach((row, index) => {
-        row.style.opacity = '0';
-        row.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            row.style.transition = 'all 0.3s ease';
-            row.style.opacity = '1';
-            row.style.transform = 'translateY(0)';
-        }, index * 50);
-    });
-}
-
-// 📊 Actualizar estado de conexión
-function updateConnectionStatus(status, title, message) {
-    const statusCard = document.querySelector('.status-card');
-    const statusIcon = document.getElementById('statusIcon');
-    const statusTitle = document.getElementById('statusTitle');
-    const statusMessage = document.getElementById('statusMessage');
-    
-    if (!statusCard) return;
-    
-    statusCard.className = 'status-card';
-    
-    switch (status) {
-        case 'connecting':
-            statusIcon.className = 'fas fa-spinner fa-spin';
-            break;
-        case 'connected':
-            statusCard.classList.add('connected');
-            statusIcon.className = 'fas fa-check-circle success';
-            break;
-        case 'error':
-            statusCard.classList.add('error');
-            statusIcon.className = 'fas fa-exclamation-triangle error';
-            break;
-    }
-    
-    statusTitle.textContent = title;
-    statusMessage.textContent = message;
-}
-
-// 📝 Sistema de logging
-function log(message, type = 'info') {
-    const logContainer = document.getElementById('logContainer');
-    if (!logContainer) return;
-    
-    const timestamp = new Date().toLocaleTimeString('es-CO');
-    
-    const logEntry = document.createElement('div');
-    logEntry.className = `log-entry ${type}`;
-    
-    const icons = {
-        'info': 'ℹ️',
-        'success': '✅',
-        'warning': '⚠️',
-        'error': '❌'
-    };
-    
-    logEntry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${icons[type]} ${message}`;
-    
-    logContainer.appendChild(logEntry);
-    logContainer.scrollTop = logContainer.scrollHeight;
-    
-    console.log(`[Transferencias] ${message}`);
-}
-
-// 🧹 Limpiar log
 function clearLog() {
     const logContainer = document.getElementById('logContainer');
     if (logContainer) {
         logContainer.innerHTML = '';
-        log('🧹 Registro limpiado', 'info');
+        executiveSystem?.log('🧹 Log ejecutivo limpiado', 'info');
     }
 }
 
-// ⏱️ Debounce utility
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
+function exportLog() {
+    const logContainer = document.getElementById('logContainer');
+    const logEntries = Array.from(logContainer?.querySelectorAll('.log-entry') || [])
+        .map(entry => entry.textContent.trim())
+        .join('\n');
+    
+    const blob = new Blob([logEntries], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `executive_log_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
-// 🎯 Funciones globales
-window.showTab = showTab;
-window.editTransferencia = editTransferencia;
-window.editPago = editPago;
-window.deleteTransferencia = deleteTransferencia;
-window.deletePago = deletePago;
-window.clearTransferenciaForm = clearTransferenciaForm;
-window.clearPagoForm = clearPagoForm;
-window.loadData = loadData;
-window.exportTransferencias = exportTransferencias;
-window.exportPagos = exportPagos;
-window.clearLog = clearLog;
-
-// 🔧 Debug utilities
-window.transferenciasDebug = {
-    status: () => ({
-        firebaseReady,
-        transferencias: transferencias.length,
-        pagos: pagos.length,
-        editingId,
-        editingType
-    }),
-    getData: () => ({ transferencias, pagos }),
-    clearAll: () => {
-        if (confirm('¿Eliminar TODOS los datos? Esta acción no se puede deshacer.')) {
-            transferencias = [];
-            pagos = [];
-            localStorage.removeItem('transferencias_local');
-            localStorage.removeItem('pagos_local');
-            renderData();
-            updateStats();
-            updateReports();
-            log('🧹 Todos los datos eliminados', 'warning');
-        }
+// Performance monitoring
+window.addEventListener('load', () => {
+    if (window.performance) {
+        const loadTime = window.performance.timing.loadEventEnd - window.performance.timing.navigationStart;
+        console.log(`🚀 Executive System loaded in ${loadTime}ms`);
     }
+});
+
+// Error handling
+window.addEventListener('error', (event) => {
+    console.error('Executive System Error:', event.error);
+    executiveSystem?.log(`💥 Error del sistema: ${event.error.message}`, 'error');
+});
+
+// Debug utilities
+window.executiveDebug = {
+    getStatus: () => executiveSystem,
+    reloadData: () => executiveSystem?.loadAllData(),
+    clearStorage: () => {
+        Object.values(EXECUTIVE_CONFIG.STORAGE_KEYS).forEach(key => {
+            localStorage.removeItem(key);
+        });
+        console.log('🧹 Storage cleared');
+    },
+    exportConfig: () => EXECUTIVE_CONFIG
 };
-
-log('📱 Sistema de Transferencias cargado correctamente', 'success');
