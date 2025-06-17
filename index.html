@@ -3,133 +3,446 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión Zona 1561 - Sistema Corporativo</title>
+    <title>Gestión Transferencias - DROSAN & UNIDROGAS</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Tu HTML de la aplicación aquí -->
     <div class="container">
-        <!-- Header -->
+        <!-- Header Ejecutivo -->
         <header class="header">
             <div class="header-content">
-                <h1><i class="fas fa-pills"></i> Gestión Zona 1561</h1>
-                <p>Sistema corporativo de gestión de farmacias</p>
+                <h1><i class="fas fa-exchange-alt"></i> Sistema de Transferencias</h1>
+                <p>Control de transferencias DROSAN & UNIDROGAS • Pagos DESCONGELX100, MULTIDOL X400/X800</p>
             </div>
             <div class="header-stats">
-                <div class="stat-card">
-                    <i class="fas fa-store"></i>
-                    <div>
-                        <span class="stat-number" id="totalFarmacias">0</span>
-                        <span class="stat-label">Farmacias</span>
-                    </div>
+                <div class="quick-stat">
+                    <span class="stat-number" id="totalTransferencias">0</span>
+                    <span class="stat-label">Transferencias</span>
+                </div>
+                <div class="quick-stat">
+                    <span class="stat-number" id="totalPagos">0</span>
+                    <span class="stat-label">Pagos</span>
+                </div>
+                <div class="quick-stat">
+                    <span class="stat-number" id="montoTotal">$0</span>
+                    <span class="stat-label">Total</span>
                 </div>
             </div>
         </header>
 
-        <!-- Controls -->
-        <div class="controls">
-            <div class="search-container">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Buscar por nombre, teléfono u observaciones...">
-            </div>
-            <div class="action-buttons">
-                <button class="btn btn-primary" onclick="showModal()">
-                    <i class="fas fa-plus"></i> Agregar Farmacia
-                </button>
-                <button class="btn btn-success" onclick="exportToExcel()">
-                    <i class="fas fa-file-excel"></i> Exportar Excel
-                </button>
+        <!-- Estado Conexión Firebase -->
+        <div class="connection-status" id="connectionStatus">
+            <div class="status-card">
+                <i class="fas fa-spinner fa-spin" id="statusIcon"></i>
+                <h3 id="statusTitle">Conectando...</h3>
+                <p id="statusMessage">Inicializando sistema...</p>
             </div>
         </div>
 
-        <!-- Tabla Responsiva -->
-        <div class="table-wrapper">
-            <table id="farmaciasTable" class="data-table">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Teléfono</th>
-                        <th>Observaciones</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <!-- Los datos se cargarán aquí -->
-                </tbody>
-            </table>
-        </div>
+        <!-- Panel Principal -->
+        <div class="main-panel">
+            <div class="panel-tabs">
+                <button class="tab-btn active" onclick="showTab('transferencias')">
+                    <i class="fas fa-exchange-alt"></i> Transferencias
+                </button>
+                <button class="tab-btn" onclick="showTab('pagos')">
+                    <i class="fas fa-credit-card"></i> Pagos Productos
+                </button>
+                <button class="tab-btn" onclick="showTab('reportes')">
+                    <i class="fas fa-chart-bar"></i> Reportes
+                </button>
+            </div>
 
-        <!-- Modal -->
-        <div id="modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modalTitle">Agregar Farmacia</h2>
-                    <span class="close" onclick="closeModal()">&times;</span>
+            <!-- Tab: Transferencias -->
+            <div id="transferenciasTab" class="tab-content active">
+                <div class="section-header">
+                    <h2><i class="fas fa-plus-circle"></i> Registrar Transferencia</h2>
+                    <div class="action-buttons">
+                        <button onclick="exportTransferencias()" class="btn btn-success">
+                            <i class="fas fa-file-excel"></i> Exportar
+                        </button>
+                        <button onclick="loadData()" class="btn btn-info">
+                            <i class="fas fa-sync"></i> Actualizar
+                        </button>
+                    </div>
                 </div>
-                <form id="farmaciaForm">
-                    <div class="form-group">
-                        <label for="nombre">Nombre:</label>
-                        <input type="text" id="nombre" required>
+
+                <!-- Formulario Transferencias -->
+                <form id="transferenciaForm" class="form-card">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="distribuidora">
+                                <i class="fas fa-building"></i> Distribuidora *
+                            </label>
+                            <select id="distribuidora" required>
+                                <option value="">Seleccionar distribuidora</option>
+                                <option value="DROSAN">DROSAN</option>
+                                <option value="UNIDROGAS">UNIDROGAS</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="clienteTransferencia">
+                                <i class="fas fa-store"></i> Cliente/Farmacia *
+                            </label>
+                            <input type="text" id="clienteTransferencia" required 
+                                   placeholder="Nombre del cliente o farmacia">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="productoTransferencia">
+                                <i class="fas fa-pills"></i> Producto
+                            </label>
+                            <input type="text" id="productoTransferencia" 
+                                   placeholder="Producto transferido">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cantidadTransferencia">
+                                <i class="fas fa-sort-numeric-up"></i> Cantidad
+                            </label>
+                            <input type="number" id="cantidadTransferencia" min="1" 
+                                   placeholder="Cantidad de unidades">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="observacionesTransferencia">
+                                <i class="fas fa-comment"></i> Observaciones
+                            </label>
+                            <textarea id="observacionesTransferencia" rows="2" 
+                                      placeholder="Detalles adicionales de la transferencia"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fechaTransferencia">
+                                <i class="fas fa-calendar"></i> Fecha
+                            </label>
+                            <input type="date" id="fechaTransferencia" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="telefono">Teléfono:</label>
-                        <input type="text" id="telefono" placeholder="Opcional">
-                    </div>
-                    <div class="form-group">
-                        <label for="observaciones">Observaciones:</label>
-                        <textarea id="observaciones" rows="4" placeholder="Información adicional..."></textarea>
-                    </div>
+
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Registrar Transferencia
+                        </button>
+                        <button type="button" onclick="clearTransferenciaForm()" class="btn btn-secondary">
+                            <i class="fas fa-eraser"></i> Limpiar
+                        </button>
                     </div>
                 </form>
+
+                <!-- Lista Transferencias -->
+                <div class="data-section">
+                    <h3><i class="fas fa-list"></i> Transferencias Registradas</h3>
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchTransferencias" 
+                               placeholder="Buscar por cliente, producto o distribuidora...">
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Distribuidora</th>
+                                    <th>Cliente</th>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Observaciones</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transferenciasTableBody">
+                                <!-- Las transferencias se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="transferenciasEmpty" class="empty-state" style="display: none;">
+                        <i class="fas fa-exchange-alt"></i>
+                        <h3>No hay transferencias registradas</h3>
+                        <p>Comienza registrando la primera transferencia</p>
+                    </div>
+                </div>
             </div>
+
+            <!-- Tab: Pagos -->
+            <div id="pagosTab" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-plus-circle"></i> Registrar Pago de Productos</h2>
+                    <div class="action-buttons">
+                        <button onclick="exportPagos()" class="btn btn-success">
+                            <i class="fas fa-file-excel"></i> Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulario Pagos -->
+                <form id="pagoForm" class="form-card">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="clientePago">
+                                <i class="fas fa-store"></i> Cliente/Farmacia *
+                            </label>
+                            <input type="text" id="clientePago" required 
+                                   placeholder="Nombre del cliente que paga">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="productoPago">
+                                <i class="fas fa-pills"></i> Producto *
+                            </label>
+                            <select id="productoPago" required>
+                                <option value="">Seleccionar producto</option>
+                                <option value="DESCONGELX100">DESCONGELX100</option>
+                                <option value="MULTIDOL X400">MULTIDOL X400</option>
+                                <option value="MULTIDOL X800">MULTIDOL X800</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cajasPagadas">
+                                <i class="fas fa-boxes"></i> Cajas Pagadas *
+                            </label>
+                            <input type="number" id="cajasPagadas" min="1" required 
+                                   placeholder="Número de cajas">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="valorUnitario">
+                                <i class="fas fa-dollar-sign"></i> Valor por Caja
+                            </label>
+                            <input type="number" id="valorUnitario" min="0" step="0.01" 
+                                   placeholder="Precio por caja">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="totalPago">
+                                <i class="fas fa-calculator"></i> Total Pago
+                            </label>
+                            <input type="text" id="totalPago" readonly 
+                                   placeholder="Se calculará automáticamente">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fechaPago">
+                                <i class="fas fa-calendar"></i> Fecha Pago
+                            </label>
+                            <input type="date" id="fechaPago" required>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="observacionesPago">
+                                <i class="fas fa-comment"></i> Observaciones
+                            </label>
+                            <textarea id="observacionesPago" rows="2" 
+                                      placeholder="Detalles del pago, método, etc."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Registrar Pago
+                        </button>
+                        <button type="button" onclick="clearPagoForm()" class="btn btn-secondary">
+                            <i class="fas fa-eraser"></i> Limpiar
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Lista Pagos -->
+                <div class="data-section">
+                    <h3><i class="fas fa-list"></i> Pagos Registrados</h3>
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchPagos" 
+                               placeholder="Buscar por cliente, producto...">
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Producto</th>
+                                    <th>Cajas</th>
+                                    <th>Valor Unitario</th>
+                                    <th>Total</th>
+                                    <th>Observaciones</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pagosTableBody">
+                                <!-- Los pagos se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="pagosEmpty" class="empty-state" style="display: none;">
+                        <i class="fas fa-credit-card"></i>
+                        <h3>No hay pagos registrados</h3>
+                        <p>Comienza registrando el primer pago</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Reportes -->
+            <div id="reportesTab" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-bar"></i> Reportes y Estadísticas</h2>
+                </div>
+
+                <!-- Resumen Ejecutivo -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="reporteTotalTransferencias">0</h3>
+                            <p>Total Transferencias</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="reporteTotalPagos">0</h3>
+                            <p>Total Pagos</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="reporteTotalCajas">0</h3>
+                            <p>Cajas Pagadas</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="reporteMontoTotal">$0</h3>
+                            <p>Monto Total</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reportes por Distribuidora -->
+                <div class="report-section">
+                    <h3><i class="fas fa-building"></i> Por Distribuidora</h3>
+                    <div class="report-cards">
+                        <div class="report-card">
+                            <h4>DROSAN</h4>
+                            <div class="report-stats">
+                                <span>Transferencias: <strong id="drosanTransferencias">0</strong></span>
+                                <span>Productos: <strong id="drosanProductos">0</strong></span>
+                            </div>
+                        </div>
+                        <div class="report-card">
+                            <h4>UNIDROGAS</h4>
+                            <div class="report-stats">
+                                <span>Transferencias: <strong id="unidrogasTransferencias">0</strong></span>
+                                <span>Productos: <strong id="unidrogasProductos">0</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reportes por Productos -->
+                <div class="report-section">
+                    <h3><i class="fas fa-pills"></i> Por Productos</h3>
+                    <div class="report-cards">
+                        <div class="report-card">
+                            <h4>DESCONGELX100</h4>
+                            <div class="report-stats">
+                                <span>Cajas: <strong id="descongelCajas">0</strong></span>
+                                <span>Total: <strong id="descongelTotal">$0</strong></span>
+                            </div>
+                        </div>
+                        <div class="report-card">
+                            <h4>MULTIDOL X400</h4>
+                            <div class="report-stats">
+                                <span>Cajas: <strong id="multidol400Cajas">0</strong></span>
+                                <span>Total: <strong id="multidol400Total">$0</strong></span>
+                            </div>
+                        </div>
+                        <div class="report-card">
+                            <h4>MULTIDOL X800</h4>
+                            <div class="report-stats">
+                                <span>Cajas: <strong id="multidol800Cajas">0</strong></span>
+                                <span>Total: <strong id="multidol800Total">$0</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="activity-section">
+            <h3><i class="fas fa-history"></i> Registro de Actividades</h3>
+            <div id="logContainer" class="log-container"></div>
+            <button onclick="clearLog()" class="btn btn-secondary">
+                <i class="fas fa-broom"></i> Limpiar
+            </button>
         </div>
     </div>
 
-    <!-- =============================================== -->
-    <!-- 🔥 CONFIGURACIÓN FIREBASE - EXACTA DE TU CDN   -->
-    <!-- =============================================== -->
+    <!-- Firebase Configuration - Tu configuración que YA FUNCIONA -->
     <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        try {
+            console.log('🚀 Iniciando Firebase para Transferencias...');
+            
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js");
+            const { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js");
 
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAaVSb70OFIoX48T9GbLmTcdXOSvKv2pRk",
-            authDomain: "zona1561-4de30.firebaseapp.com",
-            projectId: "zona1561-4de30",
-            storageBucket: "zona1561-4de30.firebasestorage.app",
-            messagingSenderId: "451366030738",
-            appId: "1:451366030738:web:e638db51fbe24f6a48054b"
-        };
+            // Tu configuración Firebase que YA FUNCIONA
+            const firebaseConfig = {
+                apiKey: "AIzaSyAaVSb70OFIoX48T9GbLmTcdXOSvKv2pRk",
+                authDomain: "zona1561-4de30.firebaseapp.com",
+                projectId: "zona1561-4de30",
+                storageBucket: "zona1561-4de30.firebasestorage.app",
+                messagingSenderId: "451366030738",
+                appId: "1:451366030738:web:e638db51fbe24f6a48054b"
+            };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
 
-        // Hacer Firebase disponible globalmente
-        window.firebaseApp = app;
-        window.firebaseDB = db;
-        window.firebaseCollection = collection;
-        window.firebaseAddDoc = addDoc;
-        window.firebaseGetDocs = getDocs;
-        window.firebaseUpdateDoc = updateDoc;
-        window.firebaseDeleteDoc = deleteDoc;
-        window.firebaseDoc = doc;
-        window.firebaseQuery = query;
-        window.firebaseOrderBy = orderBy;
+            // Hacer disponible globalmente
+            window.firebaseApp = app;
+            window.firebaseDB = db;
+            window.firebaseCollection = collection;
+            window.firebaseAddDoc = addDoc;
+            window.firebaseGetDocs = getDocs;
+            window.firebaseUpdateDoc = updateDoc;
+            window.firebaseDeleteDoc = deleteDoc;
+            window.firebaseDoc = doc;
+            window.firebaseQuery = query;
+            window.firebaseOrderBy = orderBy;
+            window.firebaseWhere = where;
 
-        console.log('🔥 Firebase inicializado correctamente');
+            window.firebaseReady = true;
+            window.dispatchEvent(new CustomEvent('firebaseReady'));
+
+            console.log('🔥 Firebase para Transferencias listo');
+
+        } catch (error) {
+            console.error('❌ Error Firebase:', error);
+            window.firebaseError = error;
+            window.dispatchEvent(new CustomEvent('firebaseError', { detail: error }));
+        }
     </script>
 
-    <!-- Scripts externos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- Tu script principal -->
     <script src="script.js"></script>
 </body>
 </html>
