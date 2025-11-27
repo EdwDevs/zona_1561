@@ -2,872 +2,536 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transferencias Ejecutivas - DROSAN & UNIDROGAS | Zona 1561</title>
-    <meta name="description" content="Sistema ejecutivo de gestión de transferencias y pagos para DROSAN y UNIDROGAS">
-    
-    <!-- Preload Critical Resources -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" as="style">
-    <link rel="preload" href="styles.css" as="style">
-    
-    <!-- Stylesheets -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1e40af">
-    
-    <!-- SEO & Social -->
-    <meta property="og:title" content="Sistema Transferencias Ejecutivo">
-    <meta property="og:description" content="Gestión profesional de transferencias DROSAN & UNIDROGAS">
-    <meta property="og:type" content="website">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>F1 Engineer: Cockpit View</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;800&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Inter', sans-serif;
+            color: white;
+            user-select: none;
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        /* --- HALO HUD (Estilo TV F1) --- */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.8) 100%); /* Vignette */
+        }
+
+        /* Top Halo Info */
+        .halo-bar {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .halo-hud {
+            background: rgba(16, 20, 30, 0.85);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #00f2ff;
+            backdrop-filter: blur(5px);
+            padding: 10px 30px;
+            display: flex;
+            gap: 40px;
+            border-radius: 20px;
+            clip-path: polygon(10% 0, 90% 0, 100% 100%, 0% 100%);
+            transform: perspective(500px) rotateX(10deg);
+        }
+
+        .hud-item { text-align: center; }
+        .hud-label { font-size: 0.7rem; color: #888; letter-spacing: 1px; }
+        .hud-value { font-family: 'Share Tech Mono'; font-size: 1.8rem; font-weight: bold; text-shadow: 0 0 10px currentColor; }
+
+        /* Radio Box (Interactivo) */
+        #radio-panel {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 320px;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .comm-box {
+            background: rgba(0, 0, 0, 0.7);
+            border-left: 4px solid #00ff9d;
+            padding: 15px;
+            font-size: 0.9rem;
+            color: #fff;
+            animation: slideIn 0.3s ease-out;
+            margin-bottom: 10px;
+            font-family: 'Share Tech Mono';
+        }
+        
+        .comm-driver { border-color: #ffcc00; } /* Amarillo para piloto */
+        .comm-engineer { border-color: #00ff9d; text-align: right; }
+
+        .comm-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+
+        .radio-btn {
+            background: rgba(0, 50, 80, 0.8);
+            border: 1px solid #00f2ff;
+            color: #00f2ff;
+            padding: 12px;
+            font-family: 'Share Tech Mono';
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        
+        .radio-btn:hover { background: #00f2ff; color: #000; }
+        .radio-btn.urgent { border-color: #ff3366; color: #ff3366; }
+        .radio-btn.urgent:hover { background: #ff3366; color: white; }
+
+        @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+        /* Strategy Controls (Bottom) */
+        .strategy-dock {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            pointer-events: auto;
+        }
+
+        .strat-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+
+        .strat-title { font-size: 0.7rem; color: #aaa; margin-bottom: 5px; }
+        
+        .toggle-btn {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Share Tech Mono';
+            min-width: 80px;
+        }
+        
+        .toggle-btn.active { background: #00f2ff; color: #000; box-shadow: 0 0 15px #00f2ff; }
+        .toggle-btn.danger.active { background: #ff3366; color: #fff; box-shadow: 0 0 15px #ff3366; }
+
+        /* Overlay Start */
+        #start-screen {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <!-- 🎯 App Container -->
-    <div class="app-container">
-        <!-- 📱 Mobile Navigation Overlay -->
-        <div class="mobile-overlay" id="mobileOverlay"></div>
-        
-        <!-- 🎯 Main Application -->
-        <main class="main-application">
-            <!-- 🏢 Executive Header -->
-            <header class="executive-header">
-                <div class="header-background">
-                    <div class="gradient-orb orb-1"></div>
-                    <div class="gradient-orb orb-2"></div>
-                    <div class="gradient-orb orb-3"></div>
+
+    <!-- 3D Layer -->
+    <div id="game-container"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+        <!-- Telemetry Halo -->
+        <div class="halo-bar">
+            <div class="halo-hud">
+                <div class="hud-item">
+                    <div class="hud-label">MARCHA</div>
+                    <div class="hud-value" style="color: #ff3366" id="gear-val">3</div>
                 </div>
-                
-                <div class="header-content">
-                    <div class="header-main">
-                        <div class="company-brand">
-                            <div class="brand-icon">
-                                <i class="fas fa-exchange-alt"></i>
-                            </div>
-                            <div class="brand-text">
-                                <h1>Sistema Transferencias</h1>
-                                <p class="brand-subtitle">DROSAN & UNIDROGAS • Control Ejecutivo</p>
-                            </div>
-                        </div>
-                        
-                        <div class="header-actions">
-                            <button class="action-btn primary" onclick="showQuickAdd()">
-                                <i class="fas fa-plus"></i>
-                                <span>Agregar</span>
-                            </button>
-                            <button class="action-btn secondary" onclick="showNotifications()">
-                                <i class="fas fa-bell"></i>
-                                <span class="notification-badge">3</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- 📊 Executive Dashboard Cards -->
-                    <div class="dashboard-cards">
-                        <div class="dashboard-card primary">
-                            <div class="card-icon">
-                                <i class="fas fa-exchange-alt"></i>
-                            </div>
-                            <div class="card-content">
-                                <div class="card-value" id="totalTransferencias">0</div>
-                                <div class="card-label">Transferencias</div>
-                                <div class="card-trend positive">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span>+12%</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="dashboard-card success">
-                            <div class="card-icon">
-                                <i class="fas fa-credit-card"></i>
-                            </div>
-                            <div class="card-content">
-                                <div class="card-value" id="totalPagos">0</div>
-                                <div class="card-label">Pagos Registrados</div>
-                                <div class="card-trend positive">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span>+8%</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="dashboard-card info">
-                            <div class="card-icon">
-                                <i class="fas fa-boxes"></i>
-                            </div>
-                            <div class="card-content">
-                                <div class="card-value" id="totalCajas">0</div>
-                                <div class="card-label">Cajas Procesadas</div>
-                                <div class="card-trend neutral">
-                                    <i class="fas fa-minus"></i>
-                                    <span>0%</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="dashboard-card warning">
-                            <div class="card-icon">
-                                <i class="fas fa-dollar-sign"></i>
-                            </div>
-                            <div class="card-content">
-                                <div class="card-value" id="montoTotal">$0</div>
-                                <div class="card-label">Monto Total</div>
-                                <div class="card-trend positive">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span>+15%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="hud-item">
+                    <div class="hud-label">RPM</div>
+                    <div class="hud-value" style="color: #00f2ff" id="rpm-val">11200</div>
                 </div>
-                
-                <!-- 🔗 Connection Status Indicator -->
-                <div class="connection-indicator" id="connectionIndicator">
-                    <div class="indicator-dot"></div>
-                    <span class="indicator-text">Conectando...</span>
+                <div class="hud-item">
+                    <div class="hud-label">DELTA</div>
+                    <div class="hud-value" style="color: #00ff9d" id="delta-val">-0.420</div>
                 </div>
-            </header>
-            
-            <!-- 🎛️ Executive Control Panel -->
-            <section class="control-panel">
-                <div class="panel-container">
-                    <!-- 🎯 Navigation Tabs -->
-                    <nav class="executive-nav">
-                        <div class="nav-tabs">
-                            <button class="nav-tab active" data-tab="transferencias">
-                                <div class="tab-icon">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </div>
-                                <div class="tab-content">
-                                    <span class="tab-title">Transferencias</span>
-                                    <span class="tab-subtitle">Gestión de envíos</span>
-                                </div>
-                            </button>
-                            
-                            <button class="nav-tab" data-tab="pagos">
-                                <div class="tab-icon">
-                                    <i class="fas fa-credit-card"></i>
-                                </div>
-                                <div class="tab-content">
-                                    <span class="tab-title">Pagos</span>
-                                    <span class="tab-subtitle">Control de productos</span>
-                                </div>
-                            </button>
-                            
-                            <button class="nav-tab" data-tab="analytics">
-                                <div class="tab-icon">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                                <div class="tab-content">
-                                    <span class="tab-title">Analytics</span>
-                                    <span class="tab-subtitle">Reportes ejecutivos</span>
-                                </div>
-                            </button>
-                        </div>
-                        
-                        <div class="nav-actions">
-                            <button class="nav-action-btn" onclick="exportData()" title="Exportar datos">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <button class="nav-action-btn" onclick="refreshData()" title="Actualizar">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                            <button class="nav-action-btn" onclick="toggleSettings()" title="Configuración">
-                                <i class="fas fa-cog"></i>
-                            </button>
-                        </div>
-                    </nav>
-                    
-                    <!-- 📊 Tab Content Areas -->
-                    <div class="tab-content-container">
-                        <!-- Tab: Transferencias -->
-                        <div class="tab-panel active" id="transferenciasPanel">
-                            <div class="panel-header">
-                                <div class="header-info">
-                                    <h2>Gestión de Transferencias</h2>
-                                    <p>Control centralizado de transferencias DROSAN y UNIDROGAS</p>
-                                </div>
-                                <div class="header-controls">
-                                    <div class="search-control">
-                                        <i class="fas fa-search"></i>
-                                        <input type="text" id="searchTransferencias" placeholder="Buscar transferencias..." autocomplete="off">
-                                    </div>
-                                    <div class="filter-controls">
-                                        <select id="filterDistribuidora" class="filter-select">
-                                            <option value="">Todas las distribuidoras</option>
-                                            <option value="DROSAN">DROSAN</option>
-                                            <option value="UNIDROGAS">UNIDROGAS</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Formulario Transferencias -->
-                            <div class="form-section">
-                                <div class="section-title">
-                                    <h3>Registrar Nueva Transferencia</h3>
-                                    <div class="title-decoration"></div>
-                                </div>
-                                
-                                <form id="transferenciaForm" class="executive-form">
-                                    <div class="form-grid">
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-building"></i>
-                                                Distribuidora
-                                                <span class="required">*</span>
-                                            </label>
-                                            <div class="select-wrapper">
-                                                <select id="distribuidora" required>
-                                                    <option value="">Seleccionar distribuidora</option>
-                                                    <option value="DROSAN">DROSAN</option>
-                                                    <option value="UNIDROGAS">UNIDROGAS</option>
-                                                </select>
-                                                <i class="fas fa-chevron-down"></i>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-store"></i>
-                                                Cliente/Farmacia
-                                                <span class="required">*</span>
-                                            </label>
-                                            <input type="text" id="clienteTransferencia" required 
-                                                   placeholder="Nombre del cliente o farmacia" autocomplete="off">
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-pills"></i>
-                                                Producto
-                                            </label>
-                                            <input type="text" id="productoTransferencia" 
-                                                   placeholder="Producto transferido" autocomplete="off">
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-sort-numeric-up"></i>
-                                                Cantidad
-                                            </label>
-                                            <div class="input-with-unit">
-                                                <input type="number" id="cantidadTransferencia" min="1" 
-                                                       placeholder="0">
-                                                <span class="input-unit">unidades</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-calendar"></i>
-                                                Fecha
-                                                <span class="required">*</span>
-                                            </label>
-                                            <input type="date" id="fechaTransferencia" required>
-                                        </div>
-                                        
-                                        <div class="form-group full-width">
-                                            <label class="form-label">
-                                                <i class="fas fa-comment-alt"></i>
-                                                Observaciones
-                                            </label>
-                                            <textarea id="observacionesTransferencia" rows="3" 
-                                                      placeholder="Detalles adicionales de la transferencia"></textarea>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-actions">
-                                        <button type="button" class="btn secondary" onclick="clearTransferenciaForm()">
-                                            <i class="fas fa-eraser"></i>
-                                            Limpiar
-                                        </button>
-                                        <button type="submit" class="btn primary">
-                                            <i class="fas fa-save"></i>
-                                            Registrar Transferencia
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                            
-                            <!-- Data Table Transferencias -->
-                            <div class="data-section">
-                                <div class="section-header">
-                                    <div class="section-info">
-                                        <h3>Transferencias Registradas</h3>
-                                        <span class="record-count" id="transferenciasCount">0 registros</span>
-                                    </div>
-                                    <div class="section-actions">
-                                        <button class="btn outline" onclick="exportTransferencias()">
-                                            <i class="fas fa-file-excel"></i>
-                                            Exportar
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="table-wrapper">
-                                    <div class="executive-table">
-                                        <table class="data-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>
-                                                        <div class="th-content">
-                                                            <span>Fecha</span>
-                                                            <i class="fas fa-sort"></i>
-                                                        </div>
-                                                    </th>
-                                                    <th>
-                                                        <div class="th-content">
-                                                            <span>Distribuidora</span>
-                                                            <i class="fas fa-sort"></i>
-                                                        </div>
-                                                    </th>
-                                                    <th>
-                                                        <div class="th-content">
-                                                            <span>Cliente</span>
-                                                            <i class="fas fa-sort"></i>
-                                                        </div>
-                                                    </th>
-                                                    <th>Producto</th>
-                                                    <th>Cantidad</th>
-                                                    <th>Observaciones</th>
-                                                    <th>Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="transferenciasTableBody">
-                                                <!-- Data will be loaded here -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    
-                                    <div class="table-pagination" id="transferenciaPagination">
-                                        <div class="pagination-info">
-                                            Mostrando <span id="paginationInfo">0-0 de 0</span> registros
-                                        </div>
-                                        <div class="pagination-controls">
-                                            <button class="pagination-btn" id="prevBtn" disabled>
-                                                <i class="fas fa-chevron-left"></i>
-                                            </button>
-                                            <div class="pagination-pages" id="paginationPages">
-                                                <!-- Page numbers will be inserted here -->
-                                            </div>
-                                            <button class="pagination-btn" id="nextBtn" disabled>
-                                                <i class="fas fa-chevron-right"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="empty-state" id="transferenciasEmpty" style="display: none;">
-                                    <div class="empty-icon">
-                                        <i class="fas fa-exchange-alt"></i>
-                                    </div>
-                                    <h3>No hay transferencias registradas</h3>
-                                    <p>Comienza registrando tu primera transferencia para ver los datos aquí</p>
-                                    <button class="btn primary" onclick="focusFirstInput()">
-                                        <i class="fas fa-plus"></i>
-                                        Crear Primera Transferencia
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Tab: Pagos -->
-                        <div class="tab-panel" id="pagosPanel">
-                            <div class="panel-header">
-                                <div class="header-info">
-                                    <h2>Control de Pagos</h2>
-                                    <p>Gestión de pagos DESCONGELX100, MULTIDOL X400 y MULTIDOL X800</p>
-                                </div>
-                                <div class="header-controls">
-                                    <div class="search-control">
-                                        <i class="fas fa-search"></i>
-                                        <input type="text" id="searchPagos" placeholder="Buscar pagos..." autocomplete="off">
-                                    </div>
-                                    <div class="filter-controls">
-                                        <select id="filterProducto" class="filter-select">
-                                            <option value="">Todos los productos</option>
-                                            <option value="DESCONGELX100">DESCONGELX100</option>
-                                            <option value="MULTIDOL X400">MULTIDOL X400</option>
-                                            <option value="MULTIDOL X800">MULTIDOL X800</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Formulario Pagos -->
-                            <div class="form-section">
-                                <div class="section-title">
-                                    <h3>Registrar Nuevo Pago</h3>
-                                    <div class="title-decoration"></div>
-                                </div>
-                                
-                                <form id="pagoForm" class="executive-form">
-                                    <div class="form-grid">
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-store"></i>
-                                                Cliente/Farmacia
-                                                <span class="required">*</span>
-                                            </label>
-                                            <input type="text" id="clientePago" required 
-                                                   placeholder="Nombre del cliente que paga" autocomplete="off">
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-pills"></i>
-                                                Producto
-                                                <span class="required">*</span>
-                                            </label>
-                                            <div class="select-wrapper">
-                                                <select id="productoPago" required>
-                                                    <option value="">Seleccionar producto</option>
-                                                    <option value="DESCONGELX100">DESCONGELX100</option>
-                                                    <option value="MULTIDOL X400">MULTIDOL X400</option>
-                                                    <option value="MULTIDOL X800">MULTIDOL X800</option>
-                                                </select>
-                                                <i class="fas fa-chevron-down"></i>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-boxes"></i>
-                                                Cajas Pagadas
-                                                <span class="required">*</span>
-                                            </label>
-                                            <div class="input-with-unit">
-                                                <input type="number" id="cajasPagadas" min="1" required placeholder="0">
-                                                <span class="input-unit">cajas</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-dollar-sign"></i>
-                                                Valor por Caja
-                                            </label>
-                                            <div class="input-with-currency">
-                                                <span class="currency-symbol">$</span>
-                                                <input type="number" id="valorUnitario" min="0" step="0.01" placeholder="0.00">
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-calculator"></i>
-                                                Total Calculado
-                                            </label>
-                                            <div class="calculated-field">
-                                                <input type="text" id="totalPago" readonly placeholder="Se calcula automáticamente">
-                                                <i class="fas fa-check-circle calculated-icon"></i>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <i class="fas fa-calendar"></i>
-                                                Fecha de Pago
-                                                <span class="required">*</span>
-                                            </label>
-                                            <input type="date" id="fechaPago" required>
-                                        </div>
-                                        
-                                        <div class="form-group full-width">
-                                            <label class="form-label">
-                                                <i class="fas fa-comment-alt"></i>
-                                                Observaciones
-                                            </label>
-                                            <textarea id="observacionesPago" rows="3" 
-                                                      placeholder="Detalles del pago, método de pago, etc."></textarea>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-actions">
-                                        <button type="button" class="btn secondary" onclick="clearPagoForm()">
-                                            <i class="fas fa-eraser"></i>
-                                            Limpiar
-                                        </button>
-                                        <button type="submit" class="btn primary">
-                                            <i class="fas fa-save"></i>
-                                            Registrar Pago
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                            
-                            <!-- Data Table Pagos -->
-                            <div class="data-section">
-                                <div class="section-header">
-                                    <div class="section-info">
-                                        <h3>Pagos Registrados</h3>
-                                        <span class="record-count" id="pagosCount">0 registros</span>
-                                    </div>
-                                    <div class="section-actions">
-                                        <button class="btn outline" onclick="exportPagos()">
-                                            <i class="fas fa-file-excel"></i>
-                                            Exportar
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="table-wrapper">
-                                    <div class="executive-table">
-                                        <table class="data-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>
-                                                        <div class="th-content">
-                                                            <span>Fecha</span>
-                                                            <i class="fas fa-sort"></i>
-                                                        </div>
-                                                    </th>
-                                                    <th>Cliente</th>
-                                                    <th>Producto</th>
-                                                    <th>Cajas</th>
-                                                    <th>Valor Unit.</th>
-                                                    <th>Total</th>
-                                                    <th>Observaciones</th>
-                                                    <th>Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="pagosTableBody">
-                                                <!-- Data will be loaded here -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                
-                                <div class="empty-state" id="pagosEmpty" style="display: none;">
-                                    <div class="empty-icon">
-                                        <i class="fas fa-credit-card"></i>
-                                    </div>
-                                    <h3>No hay pagos registrados</h3>
-                                    <p>Registra el primer pago de productos para comenzar el control</p>
-                                    <button class="btn primary" onclick="showTab('pagos')">
-                                        <i class="fas fa-plus"></i>
-                                        Registrar Primer Pago
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Tab: Analytics -->
-                        <div class="tab-panel" id="analyticsPanel">
-                            <div class="panel-header">
-                                <div class="header-info">
-                                    <h2>Analytics Ejecutivos</h2>
-                                    <p>Reportes y análisis detallado de transferencias y pagos</p>
-                                </div>
-                                <div class="header-controls">
-                                    <div class="date-range-picker">
-                                        <input type="date" id="dateFrom" class="date-input">
-                                        <span class="date-separator">hasta</span>
-                                        <input type="date" id="dateTo" class="date-input">
-                                        <button class="btn outline small" onclick="applyDateFilter()">
-                                            <i class="fas fa-filter"></i>
-                                            Aplicar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Executive Analytics Grid -->
-                            <div class="analytics-grid">
-                                <div class="analytics-card">
-                                    <div class="card-header">
-                                        <h3>Resumen Ejecutivo</h3>
-                                        <i class="fas fa-chart-pie"></i>
-                                    </div>
-                                    <div class="summary-stats">
-                                        <div class="summary-item">
-                                            <div class="summary-value" id="reporteTotalTransferencias">0</div>
-                                            <div class="summary-label">Total Transferencias</div>
-                                        </div>
-                                        <div class="summary-item">
-                                            <div class="summary-value" id="reporteTotalPagos">0</div>
-                                            <div class="summary-label">Total Pagos</div>
-                                        </div>
-                                        <div class="summary-item">
-                                            <div class="summary-value" id="reporteTotalCajas">0</div>
-                                            <div class="summary-label">Cajas Pagadas</div>
-                                        </div>
-                                        <div class="summary-item primary">
-                                            <div class="summary-value" id="reporteMontoTotal">$0</div>
-                                            <div class="summary-label">Monto Total</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="analytics-card">
-                                    <div class="card-header">
-                                        <h3>Por Distribuidora</h3>
-                                        <i class="fas fa-building"></i>
-                                    </div>
-                                    <div class="distributor-stats">
-                                        <div class="distributor-item">
-                                            <div class="distributor-info">
-                                                <div class="distributor-badge drosan">DROSAN</div>
-                                                <div class="distributor-metrics">
-                                                    <span>Transferencias: <strong id="drosanTransferencias">0</strong></span>
-                                                    <span>Productos: <strong id="drosanProductos">0</strong></span>
-                                                </div>
-                                            </div>
-                                            <div class="distributor-chart">
-                                                <div class="progress-circle" data-percentage="60">
-                                                    <span>60%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="distributor-item">
-                                            <div class="distributor-info">
-                                                <div class="distributor-badge unidrogas">UNIDROGAS</div>
-                                                <div class="distributor-metrics">
-                                                    <span>Transferencias: <strong id="unidrogasTransferencias">0</strong></span>
-                                                    <span>Productos: <strong id="unidrogasProductos">0</strong></span>
-                                                </div>
-                                            </div>
-                                            <div class="distributor-chart">
-                                                <div class="progress-circle" data-percentage="40">
-                                                    <span>40%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="analytics-card full-width">
-                                    <div class="card-header">
-                                        <h3>Análisis por Productos</h3>
-                                        <i class="fas fa-pills"></i>
-                                    </div>
-                                    <div class="products-analytics">
-                                        <div class="product-card">
-                                            <div class="product-header">
-                                                <div class="product-badge descongelx100">DESCONGELX100</div>
-                                                <div class="product-trend positive">
-                                                    <i class="fas fa-arrow-up"></i>
-                                                    <span>+15%</span>
-                                                </div>
-                                            </div>
-                                            <div class="product-metrics">
-                                                <div class="metric">
-                                                    <span class="metric-value" id="descongelCajas">0</span>
-                                                    <span class="metric-label">Cajas</span>
-                                                </div>
-                                                <div class="metric">
-                                                    <span class="metric-value" id="descongelTotal">$0</span>
-                                                    <span class="metric-label">Total</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="product-card">
-                                            <div class="product-header">
-                                                <div class="product-badge multidol400">MULTIDOL X400</div>
-                                                <div class="product-trend positive">
-                                                    <i class="fas fa-arrow-up"></i>
-                                                    <span>+8%</span>
-                                                </div>
-                                            </div>
-                                            <div class="product-metrics">
-                                                <div class="metric">
-                                                    <span class="metric-value" id="multidol400Cajas">0</span>
-                                                    <span class="metric-label">Cajas</span>
-                                                </div>
-                                                <div class="metric">
-                                                    <span class="metric-value" id="multidol400Total">$0</span>
-                                                    <span class="metric-label">Total</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="product-card">
-                                            <div class="product-header">
-                                                <div class="product-badge multidol800">MULTIDOL X800</div>
-                                                <div class="product-trend neutral">
-                                                    <i class="fas fa-minus"></i>
-                                                    <span>0%</span>
-                                                </div>
-                                            </div>
-                                            <div class="product-metrics">
-                                                <div class="metric">
-                                                    <span class="metric-value" id="multidol800Cajas">0</span>
-                                                    <span class="metric-label">Cajas</span>
-                                                </div>
-                                                <div class="metric">
-                                                    <span class="metric-value" id="multidol800Total">$0</span>
-                                                    <span class="metric-label">Total</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- 📱 Executive Activity Log -->
-            <section class="activity-log">
-                <div class="log-header">
-                    <div class="log-title">
-                        <h3>Registro de Actividades</h3>
-                        <span class="live-indicator">
-                            <div class="live-dot"></div>
-                            En vivo
-                        </span>
-                    </div>
-                    <div class="log-actions">
-                        <button class="log-action-btn" onclick="clearLog()">
-                            <i class="fas fa-broom"></i>
-                            Limpiar
-                        </button>
-                        <button class="log-action-btn" onclick="exportLog()">
-                            <i class="fas fa-download"></i>
-                            Exportar
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="log-container" id="logContainer">
-                    <!-- Log entries will be inserted here -->
-                </div>
-            </section>
-        </main>
-        
-        <!-- 🎭 Executive Modals -->
-        <div class="modal-overlay" id="modalOverlay"></div>
-        
-        <!-- Quick Add Modal -->
-        <div class="executive-modal" id="quickAddModal">
-            <div class="modal-container">
-                <div class="modal-header">
-                    <h3>Agregar Rápido</h3>
-                    <button class="modal-close" onclick="closeQuickAdd()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-content">
-                    <div class="quick-add-options">
-                        <button class="quick-option" onclick="quickAddTransferencia()">
-                            <i class="fas fa-exchange-alt"></i>
-                            <span>Nueva Transferencia</span>
-                        </button>
-                        <button class="quick-option" onclick="quickAddPago()">
-                            <i class="fas fa-credit-card"></i>
-                            <span>Nuevo Pago</span>
-                        </button>
-                    </div>
+                <div class="hud-item">
+                    <div class="hud-label">NEUMÁTICOS</div>
+                    <div class="hud-value" id="tire-val">98%</div>
                 </div>
             </div>
         </div>
-        
-        <!-- Notifications Modal -->
-        <div class="executive-modal" id="notificationsModal">
-            <div class="modal-container">
-                <div class="modal-header">
-                    <h3>Notificaciones</h3>
-                    <button class="modal-close" onclick="closeNotifications()">
-                        <i class="fas fa-times"></i>
-                    </button>
+
+        <!-- Radio Comms Right -->
+        <div id="radio-panel">
+            <div id="messages-area">
+                <!-- Mensajes dinámicos aquí -->
+            </div>
+            <div class="comm-options" id="radio-controls">
+                <button class="radio-btn" onclick="sim.sendRadio('tires')">ESTADO RUEDAS</button>
+                <button class="radio-btn" onclick="sim.sendRadio('gap')">DIFERENCIA</button>
+                <button class="radio-btn" onclick="sim.sendRadio('encourage')">¡VAMOS!</button>
+                <button class="radio-btn urgent" onclick="sim.sendRadio('box')">BOX BOX</button>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="strategy-dock">
+            <div class="strat-group">
+                <div class="strat-title">MODO MOTOR</div>
+                <div style="display:flex; gap:2px">
+                    <button class="toggle-btn" id="mode-save" onclick="sim.setMode('SAVE')">AHORRO</button>
+                    <button class="toggle-btn active" id="mode-normal" onclick="sim.setMode('NORMAL')">STD</button>
+                    <button class="toggle-btn danger" id="mode-push" onclick="sim.setMode('PUSH')">MAX</button>
                 </div>
-                <div class="modal-content">
-                    <div class="notifications-list">
-                        <div class="notification-item unread">
-                            <div class="notification-icon success">
-                                <i class="fas fa-check"></i>
-                            </div>
-                            <div class="notification-content">
-                                <h4>Transferencia completada</h4>
-                                <p>DROSAN - Farmacia San Rafael - 15 unidades</p>
-                                <span class="notification-time">Hace 5 minutos</span>
-                            </div>
-                        </div>
-                        
-                        <div class="notification-item">
-                            <div class="notification-icon info">
-                                <i class="fas fa-info"></i>
-                            </div>
-                            <div class="notification-content">
-                                <h4>Pago registrado</h4>
-                                <p>MULTIDOL X400 - 3 cajas - $150.000</p>
-                                <span class="notification-time">Hace 15 minutos</span>
-                            </div>
-                        </div>
-                        
-                        <div class="notification-item">
-                            <div class="notification-icon warning">
-                                <i class="fas fa-exclamation"></i>
-                            </div>
-                            <div class="notification-content">
-                                <h4>Sincronización pendiente</h4>
-                                <p>2 registros esperando sincronización</p>
-                                <span class="notification-time">Hace 30 minutos</span>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+            <div class="strat-group">
+                <div class="strat-title">ERS (BATERÍA)</div>
+                <div style="display:flex; gap:2px">
+                    <button class="toggle-btn active" id="ers-auto" onclick="sim.setERS('AUTO')">AUTO</button>
+                    <button class="toggle-btn danger" id="ers-overtake" onclick="sim.setERS('OVERTAKE')">OVERTAKE</button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Firebase Configuration -->
-    <script type="module">
-        try {
-            console.log('🚀 Iniciando Firebase Executive System...');
+
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1 style="font-size:3rem; color:#fff; font-family:'Russo One'">GP DE MONZA</h1>
+        <p style="color:#aaa; max-width:500px">
+            Estás en el muro de boxes. Tienes visión directa desde el casco de Alex.<br>
+            Tu trabajo es gestionar su ritmo, la batería y la estrategia.<br>
+            No conduzcas, <strong>toma decisiones</strong>.
+        </p>
+        <button class="radio-btn" style="font-size:1.5rem; padding:20px 40px; margin-top:20px;" onclick="sim.start()">CONECTAR RADIO</button>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN Y ESTADO ---
+        const CONFIG = {
+            trackRadius: 100,
+            baseSpeed: 1.5,
+            turnSpeed: 0.03
+        };
+
+        const STATE = {
+            isPlaying: false,
+            lap: 1,
+            tireWear: 0, // 0 to 100
+            fuel: 100,
+            engineMode: 'NORMAL', // SAVE, NORMAL, PUSH
+            ersMode: 'AUTO',
+            battery: 100,
+            position: 4,
+            gapFront: 2.5,
+            trackProgress: 0,
+            lastMsgTime: 0,
+            stressLevel: 0 // Nivel de estrés del piloto
+        };
+
+        // --- MOTOR 3D (Three.js) ---
+        const container = document.getElementById('game-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.FogExp2(0x87CEEB, 0.008);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        container.appendChild(renderer.domElement);
+
+        // Iluminación
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+        scene.add(hemiLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(50, 100, 50);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // --- ASSETS ---
+        // Generar Pista Procedural
+        function createTrack() {
+            const points = [];
+            for (let i = 0; i <= 100; i++) {
+                const t = (i / 100) * Math.PI * 2;
+                // Forma de circuito compleja
+                const x = Math.cos(t) * CONFIG.trackRadius + Math.sin(t * 3) * 30;
+                const z = Math.sin(t) * CONFIG.trackRadius + Math.cos(t * 2) * 20;
+                points.push(new THREE.Vector3(x, 0, z));
+            }
+            const curve = new THREE.CatmullRomCurve3(points);
+            curve.closed = true;
             
-            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js");
-            const { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where, limit } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js");
+            const trackGeo = new THREE.TubeGeometry(curve, 200, 8, 4, true); // Ancho de pista
+            // Aplanar tubo para carretera
+            const pos = trackGeo.attributes.position;
+            for(let i=0; i<pos.count; i++) pos.setY(i, pos.getY(i) * 0.1);
+            trackGeo.computeVertexNormals();
 
-            const firebaseConfig = {
-                apiKey: "AIzaSyAaVSb70OFIoX48T9GbLmTcdXOSvKv2pRk",
-                authDomain: "zona1561-4de30.firebaseapp.com",
-                projectId: "zona1561-4de30",
-                storageBucket: "zona1561-4de30.firebasestorage.app",
-                messagingSenderId: "451366030738",
-                appId: "1:451366030738:web:e638db51fbe24f6a48054b"
-            };
+            const mat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
+            const mesh = new THREE.Mesh(trackGeo, mat);
+            mesh.receiveShadow = true;
+            scene.add(mesh);
 
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
+            // Suelo
+            const ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(1000, 1000),
+                new THREE.MeshStandardMaterial({ color: 0x2d4c1e })
+            );
+            ground.rotation.x = -Math.PI/2;
+            ground.position.y = -0.1;
+            scene.add(ground);
 
-            // Global Firebase API
-            window.firebaseApp = app;
-            window.firebaseDB = db;
-            window.firebaseCollection = collection;
-            window.firebaseAddDoc = addDoc;
-            window.firebaseGetDocs = getDocs;
-            window.firebaseUpdateDoc = updateDoc;
-            window.firebaseDeleteDoc = deleteDoc;
-            window.firebaseDoc = doc;
-            window.firebaseQuery = query;
-            window.firebaseOrderBy = orderBy;
-            window.firebaseWhere = where;
-            window.firebaseLimit = limit;
+            // Objetos Entorno (Árboles simples)
+            for(let i=0; i<50; i++) {
+                const t = Math.random();
+                const pt = curve.getPoint(t);
+                const offset = new THREE.Vector3(Math.random()-0.5, 0, Math.random()-0.5).normalize().multiplyScalar(15 + Math.random()*20);
+                const treePos = pt.add(offset);
+                
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,2), new THREE.MeshStandardMaterial({color:0x5c4033}));
+                trunk.position.set(treePos.x, 1, treePos.z);
+                const leaves = new THREE.Mesh(new THREE.ConeGeometry(3,6), new THREE.MeshStandardMaterial({color:0x0f5c0f}));
+                leaves.position.set(treePos.x, 4, treePos.z);
+                scene.add(trunk); scene.add(leaves);
+            }
 
-            window.firebaseReady = true;
-            window.dispatchEvent(new CustomEvent('firebaseReady'));
-
-            console.log('🔥 Firebase Executive System Ready');
-
-        } catch (error) {
-            console.error('❌ Firebase Error:', error);
-            window.firebaseError = error;
-            window.dispatchEvent(new CustomEvent('firebaseError', { detail: error }));
+            return curve;
         }
-    </script>
 
-    <!-- External Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- Main Application Script -->
-    <script src="script.js"></script>
+        const trackCurve = createTrack();
+
+        // Coche del Jugador (Invisible, solo punto de anclaje de cámara y morro)
+        const carGroup = new THREE.Group();
+        scene.add(carGroup);
+
+        // Morro del coche (Visible para referencia)
+        const noseGeo = new THREE.BoxGeometry(1, 0.5, 2.5);
+        const noseMat = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.4 });
+        const nose = new THREE.Mesh(noseGeo, noseMat);
+        nose.position.set(0, 0.5, -1.5);
+        carGroup.add(nose);
+        
+        // Ruedas delanteras (Para sensación de velocidad)
+        const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.5, 16);
+        wheelGeo.rotateZ(Math.PI/2);
+        const wheelMat = new THREE.MeshBasicMaterial({color:0x111});
+        const wL = new THREE.Mesh(wheelGeo, wheelMat); wL.position.set(-1, 0.4, -2.5);
+        const wR = new THREE.Mesh(wheelGeo, wheelMat); wR.position.set(1, 0.4, -2.5);
+        carGroup.add(wL); carGroup.add(wR);
+
+        // --- LÓGICA DEL JUEGO (SIMULACIÓN) ---
+        const sim = {
+            start() {
+                document.getElementById('start-screen').style.display = 'none';
+                STATE.isPlaying = true;
+                this.addMessage("engineer", "Radio check. Carrera en verde. Mantén temperatura en los neumáticos.");
+                setTimeout(() => this.addMessage("driver", "Recibido. El coche se siente un poco pesado."), 2000);
+            },
+
+            updateLogic() {
+                if(!STATE.isPlaying) return;
+
+                // 1. Calcular Velocidad basada en decisiones
+                let currentSpeed = CONFIG.baseSpeed;
+                
+                if (STATE.engineMode === 'PUSH') currentSpeed *= 1.15;
+                if (STATE.engineMode === 'SAVE') currentSpeed *= 0.9;
+                if (STATE.ersMode === 'OVERTAKE' && STATE.battery > 0) {
+                    currentSpeed *= 1.2;
+                    STATE.battery -= 0.5;
+                } else if (STATE.battery < 100) {
+                    STATE.battery += 0.1; // Recarga pasiva
+                }
+
+                // Desgaste de neumáticos
+                let wearRate = 0.03;
+                if (STATE.engineMode === 'PUSH') wearRate *= 1.5;
+                STATE.tireWear += wearRate;
+
+                // Degradación de rendimiento por neumáticos
+                if (STATE.tireWear > 70) currentSpeed *= 0.8;
+
+                // Mover Coche en la curva
+                STATE.trackProgress += currentSpeed * 0.0005;
+                if (STATE.trackProgress > 1) STATE.trackProgress = 0;
+
+                const pt = trackCurve.getPointAt(STATE.trackProgress);
+                const tangent = trackCurve.getTangentAt(STATE.trackProgress);
+                
+                // Actualizar posición 3D
+                carGroup.position.copy(pt);
+                // Mirar hacia adelante
+                const lookAtPt = trackCurve.getPointAt((STATE.trackProgress + 0.01) % 1);
+                carGroup.lookAt(lookAtPt);
+
+                // Cámara: Posición "Casco"
+                // Un poco arriba y atrás del centro del coche, con vibración
+                const shake = (currentSpeed / 2) * 0.05;
+                camera.position.copy(carGroup.position).add(new THREE.Vector3(0, 1.2 + (Math.random()*shake), 0));
+                
+                // La cámara mira un punto lejano adelante
+                const camTarget = trackCurve.getPointAt((STATE.trackProgress + 0.05) % 1);
+                camera.lookAt(camTarget);
+
+                // Actualizar UI
+                this.updateUI(currentSpeed);
+                this.checkRandomEvents();
+            },
+
+            updateUI(speed) {
+                // RPM Falsas basadas en velocidad
+                const rpm = Math.floor(10000 + (speed * 1000) + (Math.random() * 200));
+                document.getElementById('rpm-val').innerText = rpm;
+                
+                // Neumáticos
+                const tireHealth = 100 - Math.floor(STATE.tireWear);
+                const tireEl = document.getElementById('tire-val');
+                tireEl.innerText = tireHealth + '%';
+                if(tireHealth < 40) tireEl.style.color = 'red';
+                else tireEl.style.color = 'white';
+
+                // Batería visual (borde del halo o algo, simplificado aquí en botones)
+                const ersBtn = document.getElementById('ers-overtake');
+                if(STATE.battery < 10) {
+                    ersBtn.style.opacity = 0.5;
+                    ersBtn.innerText = "NO BATT";
+                } else {
+                    ersBtn.style.opacity = 1;
+                    ersBtn.innerText = `OVERTAKE (${Math.floor(STATE.battery)}%)`;
+                }
+            },
+
+            setMode(mode) {
+                STATE.engineMode = mode;
+                // Update buttons visual
+                ['save', 'normal', 'push'].forEach(m => {
+                    const btn = document.getElementById(`mode-${m}`);
+                    if(m === mode.toLowerCase()) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
+                
+                // Feedback piloto
+                if(mode === 'PUSH') this.addMessage("engineer", "Modo Ataque. ¡Empuja ahora!");
+                if(mode === 'SAVE') this.addMessage("engineer", "Enfría el coche. Lift and coast.");
+            },
+
+            setERS(mode) {
+                if(STATE.battery < 10 && mode === 'OVERTAKE') return;
+                STATE.ersMode = mode;
+                document.getElementById('ers-auto').classList.toggle('active', mode === 'AUTO');
+                document.getElementById('ers-overtake').classList.toggle('active', mode === 'OVERTAKE');
+            },
+
+            // --- SISTEMA DE RADIO ---
+            messagesArea: document.getElementById('messages-area'),
+
+            addMessage(who, text) {
+                const el = document.createElement('div');
+                el.className = `comm-box comm-${who}`;
+                el.innerText = (who === 'driver' ? "ALEX: " : "INGENIERO: ") + text;
+                this.messagesArea.appendChild(el);
+                
+                // Auto scroll y limpieza
+                if(this.messagesArea.children.length > 4) {
+                    this.messagesArea.removeChild(this.messagesArea.children[0]);
+                }
+            },
+
+            sendRadio(type) {
+                if(type === 'tires') {
+                    this.addMessage("engineer", "¿Cómo están los neumáticos?");
+                    setTimeout(() => {
+                        if(STATE.tireWear > 60) this.addMessage("driver", "¡Se están muriendo! ¡Patinan mucho!");
+                        else if(STATE.tireWear > 30) this.addMessage("driver", "Empiezan a caer, pero aguantan.");
+                        else this.addMessage("driver", "Los neumáticos están perfectos.");
+                    }, 1500);
+                }
+                if(type === 'gap') {
+                    this.addMessage("engineer", "Diferencia con el de adelante.");
+                    setTimeout(() => {
+                        this.addMessage("driver", `Lo veo a ${STATE.gapFront} segundos. ¿Puedo empujar?`);
+                    }, 1500);
+                }
+                if(type === 'encourage') {
+                    this.addMessage("engineer", "Buen ritmo, sigue así. Cabeza abajo.");
+                    STATE.stressLevel = Math.max(0, STATE.stressLevel - 10);
+                }
+                if(type === 'box') {
+                    this.addMessage("engineer", "BOX, BOX, BOX. En esta vuelta.");
+                    setTimeout(() => {
+                        this.addMessage("driver", "Copiado. Box esta vuelta.");
+                        // Resetear neumáticos tras un delay
+                        setTimeout(() => {
+                            STATE.tireWear = 0;
+                            this.addMessage("engineer", "Buena parada. 2.4 segundos. Vamos.");
+                        }, 5000);
+                    }, 1000);
+                }
+            },
+
+            checkRandomEvents() {
+                const now = Date.now();
+                if (now - STATE.lastMsgTime < 8000) return; // Evitar spam
+
+                if (Math.random() < 0.005) {
+                    // Evento aleatorio
+                    const msgs = [
+                        "Siento vibraciones en el freno delantero.",
+                        "El de atrás se acerca muy rápido en las rectas.",
+                        "¿Cuál es mi tiempo delta?",
+                        "Bandera azul, quítamelo de encima."
+                    ];
+                    const msg = msgs[Math.floor(Math.random() * msgs.length)];
+                    this.addMessage("driver", msg);
+                    STATE.lastMsgTime = now;
+                }
+            }
+        };
+
+        // --- BUCLE PRINCIPAL ---
+        function animate() {
+            requestAnimationFrame(animate);
+            sim.updateLogic();
+            renderer.render(scene, camera);
+        }
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+
+    </script>
 </body>
 </html>
